@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import os
+import pathlib
 
 
 def setup_driver(download_dir):
@@ -67,22 +68,16 @@ def download_asset_list(id, password, download_dir):
     print("Download dir is {}".format(download_dir))
     driver = setup_driver(download_dir)
 
-    try:
-        login_and_expand_mymenu(driver, id, password)
+    login_and_expand_mymenu(driver, id, password)
 
-        time.sleep(1)
-        driver.find_element(By.LINK_TEXT, '保有商品一覧').click()
-        # 読み込みが終わってからCSVで保存する
-        time.sleep(5)
-        driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
+    time.sleep(1)
+    driver.find_element(By.LINK_TEXT, '保有商品一覧').click()
+    # 読み込みが終わってからCSVで保存する
+    time.sleep(5)
+    driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
 
-        time.sleep(5)
-
-    except:
-        driver.get_screenshot_as_file('hoge')
-
+    time.sleep(5)
     driver.quit()
-
     print("Finish downloading asset list")
 
 
@@ -90,6 +85,14 @@ id = os.environ['RAKUTEN_SEC_ID']
 password = os.environ['RAKUTEN_SEC_PASSWORD']
 download_dir = os.environ['DOWNLOAD_DIR']
 
+
+for f in [f for f in pathlib.Path(download_dir).glob("*.csv")]:
+    f.unlink()
+
 download_withdrawal_history(id, password, download_dir)
 download_dividened_history(id, password, download_dir)
 download_asset_list(id, password, download_dir)
+
+list(pathlib.Path(download_dir).glob("Withdrawal*.csv"))[0].rename(pathlib.Path(download_dir, 'withdrawal.csv'))
+list(pathlib.Path(download_dir).glob("assetbalance*.csv"))[0].rename(pathlib.Path(download_dir, 'asset.csv'))
+list(pathlib.Path(download_dir).glob("dividendlist*.csv"))[0].rename(pathlib.Path(download_dir, 'dividend.csv'))
