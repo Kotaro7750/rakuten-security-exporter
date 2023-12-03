@@ -6,6 +6,9 @@ import os
 
 def setup_driver(download_dir):
     options = webdriver.ChromeOptions()
+    options.add_argument('--headless=new')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
     options.add_experimental_option('prefs', {
         "download.default_directory": download_dir
     })
@@ -29,6 +32,8 @@ def login_and_expand_mymenu(driver, id, password):
 
 
 def download_withdrawal_history(id, password, download_dir):
+    print("Start downloading withdrawal history")
+    print("Download dir is {}".format(download_dir))
     driver = setup_driver(download_dir)
     login_and_expand_mymenu(driver, id, password)
 
@@ -37,9 +42,12 @@ def download_withdrawal_history(id, password, download_dir):
 
     time.sleep(5)
     driver.quit()
+    print("Finish downloading withdrawal history")
 
 
 def download_dividened_history(id, password, download_dir):
+    print("Start downloading dividend history")
+    print("Download dir is {}".format(download_dir))
     driver = setup_driver(download_dir)
     login_and_expand_mymenu(driver, id, password)
 
@@ -51,19 +59,31 @@ def download_dividened_history(id, password, download_dir):
 
     time.sleep(5)
     driver.quit()
+    print("Finish downloading dividend history")
 
 
 def download_asset_list(id, password, download_dir):
+    print("Start downloading asset list")
+    print("Download dir is {}".format(download_dir))
     driver = setup_driver(download_dir)
-    login_and_expand_mymenu(driver, id, password)
 
-    driver.find_element(By.LINK_TEXT, '保有商品一覧').click()
-    # 読み込みが終わってからCSVで保存する
-    time.sleep(5)
-    driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
+    try:
+        login_and_expand_mymenu(driver, id, password)
 
-    time.sleep(5)
+        time.sleep(1)
+        driver.find_element(By.LINK_TEXT, '保有商品一覧').click()
+        # 読み込みが終わってからCSVで保存する
+        time.sleep(5)
+        driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
+
+        time.sleep(5)
+
+    except:
+        driver.get_screenshot_as_file('hoge')
+
     driver.quit()
+
+    print("Finish downloading asset list")
 
 
 id = os.environ['RAKUTEN_SEC_ID']
