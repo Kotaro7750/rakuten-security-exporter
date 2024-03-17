@@ -55,13 +55,11 @@ def parse_withdrawal_history(download_dir):
         for row in csv.DictReader(f):
             jsonArray.append(row)
 
-        convertedJsonArray = [
+        return [
             {'date': e['入出金日'], 'amount': int(e['入金額[円]']), 'type': 'in', 'currency': 'YEN'} if e['入金額[円]']
             else {'date': e['入出金日'], 'amount': int(e['出金額[円]']), 'type': 'out', 'currency': 'YEN'}
             for e in jsonArray
         ]
-
-        return json.dumps(convertedJsonArray, indent=4, ensure_ascii=False)
 
 
 def parse_asset(download_dir):

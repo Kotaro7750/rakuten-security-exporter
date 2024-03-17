@@ -1,98 +1,55 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
 import os
 import pathlib
+import rakuten_security_scraper_pb2_grpc
+import rakuten_security_scraper_pb2
+import grpc
+from concurrent import futures
+import cache
 
 
-def setup_driver(download_dir):
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless=new')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_experimental_option('prefs', {
-        "download.default_directory": download_dir
-    })
-    driver = webdriver.Chrome(options)
-    driver.set_window_size(1920, 1080)
-    driver.implicitly_wait(5)
+class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSecurityScraperServicer):
+    download_dir = ""
+    id = ""
+    password = ""
+    cache = {}
 
-    return driver
+    def __init__(self, id, password, download_dir):
+        self.id = id
+        self.password = password
 
+        self.download_dir = download_dir
+        for f in [f for f in pathlib.Path(self.download_dir).glob("*.csv")]:
+            f.unlink()
 
-def login_and_expand_mymenu(driver, id, password):
-    driver.get('https://www.rakuten-sec.co.jp/')
+        self.cache = cache.CachedRakutenSecurityScraper(
+            id, password, download_dir, 30)
 
-    # ログイン
-    driver.find_element(By.ID, 'form-login-id').send_keys(id)
-    driver.find_element(By.ID, 'form-login-pass').send_keys(password)
-    driver.find_element(By.ID, 'login-btn').click()
+    def ListWithdrawalHistorys(self, request, context):
 
-    # マイメニュー展開
-    driver.find_element(By.XPATH, '/html/body/header/div/div[4]/div/nav/ul/li[6]/button').click()
+        history = self.cache.GetWithdrawalHistories()
 
+        response = rakuten_security_scraper_pb2.Response()
+        response.history.extend(
+            [self._covertToWithdrawalHisoty(e) for e in history])
+        return response
 
-def download_withdrawal_history(id, password, download_dir):
-    print("Start downloading withdrawal history")
-    print("Download dir is {}".format(download_dir))
-    driver = setup_driver(download_dir)
-    login_and_expand_mymenu(driver, id, password)
-
-    driver.find_element(By.LINK_TEXT, '入出金履歴').click()
-    driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
-
-    time.sleep(5)
-    driver.quit()
-    print("Finish downloading withdrawal history")
-
-
-def download_dividened_history(id, password, download_dir):
-    print("Start downloading dividend history")
-    print("Download dir is {}".format(download_dir))
-    driver = setup_driver(download_dir)
-    login_and_expand_mymenu(driver, id, password)
-
-    driver.find_element(By.LINK_TEXT, '配当・分配金').click()
-    driver.find_element(By.XPATH, '//img[@alt="すべて"]').click()
-
-    driver.find_element(By.XPATH, '/html/body/div[2]/div/div/div/div/table/tbody/tr/td/form/div[3]/table/tbody/tr[7]/td/span/input').click()
-    driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
-
-    time.sleep(5)
-    driver.quit()
-    print("Finish downloading dividend history")
-
-
-def download_asset_list(id, password, download_dir):
-    print("Start downloading asset list")
-    print("Download dir is {}".format(download_dir))
-    driver = setup_driver(download_dir)
-
-    login_and_expand_mymenu(driver, id, password)
-
-    time.sleep(1)
-    driver.find_element(By.LINK_TEXT, '保有商品一覧').click()
-    # 読み込みが終わってからCSVで保存する
-    time.sleep(5)
-    driver.find_element(By.XPATH, '//img[@alt="CSVで保存"]').click()
-
-    time.sleep(5)
-    driver.quit()
-    print("Finish downloading asset list")
+    def _covertToWithdrawalHisoty(self, elem):
+        return rakuten_security_scraper_pb2.WithdrawalHistory(
+            date=elem["date"],
+            amount=elem["amount"],
+            type=elem["type"],
+            currency=elem["currency"]
+        )
 
 
 id = os.environ['RAKUTEN_SEC_ID']
 password = os.environ['RAKUTEN_SEC_PASSWORD']
 download_dir = os.environ['DOWNLOAD_DIR']
 
+server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+rakuten_security_scraper_pb2_grpc.add_RakutenSecurityScraperServicer_to_server(
+    RakutenSecurityScraperServicer(id, password, download_dir), server)
 
-for f in [f for f in pathlib.Path(download_dir).glob("*.csv")]:
-    f.unlink()
-
-download_withdrawal_history(id, password, download_dir)
-download_dividened_history(id, password, download_dir)
-download_asset_list(id, password, download_dir)
-
-list(pathlib.Path(download_dir).glob("Withdrawal*.csv"))[0].rename(pathlib.Path(download_dir, 'withdrawal.csv'))
-list(pathlib.Path(download_dir).glob("assetbalance*.csv"))[0].rename(pathlib.Path(download_dir, 'asset.csv'))
-list(pathlib.Path(download_dir).glob("dividendlist*.csv"))[0].rename(pathlib.Path(download_dir, 'dividend.csv'))
+server.add_insecure_port("localhost:50051")
+server.start()
+server.wait_for_termination()

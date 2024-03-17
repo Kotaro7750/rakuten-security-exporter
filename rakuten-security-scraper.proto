@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "github.com/Kotaro7750/rakuten-security-exporter/main";
+
+service RakutenSecurityScraper {
+  rpc ListWithdrawalHistorys(Request) returns (Response) {}
+}
+
+message Request {
+  uint64 argument = 1;
+}
+
+message Response {
+  repeated WithdrawalHistory history = 1;
+}
+
+message WithdrawalHistory {
+  string date = 1;
+  uint64 amount = 2;
+  string type = 3;
+  string currency = 4;
+}
