@@ -1,0 +1,5 @@
+/__pycache__/
+/downloaded/*
+!/downloaded/.gitkeep
+/debug_info/*
+!/debug_info/.gitkeep
