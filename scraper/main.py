@@ -26,7 +26,7 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
         self.cache = cache.CachedRakutenSecurityScraper(
             id, password, download_dir, 30)
 
-    def ListWithdrawalHistorys(self, request, context):
+    def ListWithdrawalHistories(self, request, context):
 
         history = self.cache.GetWithdrawalHistories()
 

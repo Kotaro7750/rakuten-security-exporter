@@ -3,7 +3,7 @@ syntax = "proto3";
 option go_package = "github.com/Kotaro7750/rakuten-security-exporter/main";
 
 service RakutenSecurityScraper {
-  rpc ListWithdrawalHistorys(Request) returns (Response) {}
+  rpc ListWithdrawalHistories(Request) returns (Response) {}
 }
 
 message Request {

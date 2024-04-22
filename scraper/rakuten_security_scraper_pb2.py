@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1erakuten-security-scraper.proto\"\x1b\n\x07Request\x12\x10\n\x08\x61rgument\x18\x01 \x01(\x04\"/\n\x08Response\x12#\n\x07history\x18\x01 \x03(\x0b\x32\x12.WithdrawalHistory\"Q\n\x11WithdrawalHistory\x12\x0c\n\x04\x64\x61te\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x10\n\x08\x63urrency\x18\x04 \x01(\t2I\n\x16RakutenSecurityScraper\x12/\n\x16ListWithdrawalHistorys\x12\x08.Request\x1a\t.Response\"\x00\x42\x36Z4github.com/Kotaro7750/rakuten-security-exporter/mainb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1erakuten-security-scraper.proto\"\x1b\n\x07Request\x12\x10\n\x08\x61rgument\x18\x01 \x01(\x04\"/\n\x08Response\x12#\n\x07history\x18\x01 \x03(\x0b\x32\x12.WithdrawalHistory\"Q\n\x11WithdrawalHistory\x12\x0c\n\x04\x64\x61te\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0c\n\x04type\x18\x03 \x01(\t\x12\x10\n\x08\x63urrency\x18\x04 \x01(\t2J\n\x16RakutenSecurityScraper\x12\x30\n\x17ListWithdrawalHistories\x12\x08.Request\x1a\t.Response\"\x00\x42\x36Z4github.com/Kotaro7750/rakuten-security-exporter/mainb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -29,5 +29,5 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_WITHDRAWALHISTORY']._serialized_start=112
   _globals['_WITHDRAWALHISTORY']._serialized_end=193
   _globals['_RAKUTENSECURITYSCRAPER']._serialized_start=195
-  _globals['_RAKUTENSECURITYSCRAPER']._serialized_end=268
+  _globals['_RAKUTENSECURITYSCRAPER']._serialized_end=269
 # @@protoc_insertion_point(module_scope)

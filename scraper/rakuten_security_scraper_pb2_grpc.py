@@ -14,8 +14,8 @@ class RakutenSecurityScraperStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ListWithdrawalHistorys = channel.unary_unary(
-                '/RakutenSecurityScraper/ListWithdrawalHistorys',
+        self.ListWithdrawalHistories = channel.unary_unary(
+                '/RakutenSecurityScraper/ListWithdrawalHistories',
                 request_serializer=rakuten__security__scraper__pb2.Request.SerializeToString,
                 response_deserializer=rakuten__security__scraper__pb2.Response.FromString,
                 )
@@ -24,7 +24,7 @@ class RakutenSecurityScraperStub(object):
 class RakutenSecurityScraperServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def ListWithdrawalHistorys(self, request, context):
+    def ListWithdrawalHistories(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -33,8 +33,8 @@ class RakutenSecurityScraperServicer(object):
 
 def add_RakutenSecurityScraperServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ListWithdrawalHistorys': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListWithdrawalHistorys,
+            'ListWithdrawalHistories': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListWithdrawalHistories,
                     request_deserializer=rakuten__security__scraper__pb2.Request.FromString,
                     response_serializer=rakuten__security__scraper__pb2.Response.SerializeToString,
             ),
@@ -49,7 +49,7 @@ class RakutenSecurityScraper(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ListWithdrawalHistorys(request,
+    def ListWithdrawalHistories(request,
             target,
             options=(),
             channel_credentials=None,
@@ -59,7 +59,7 @@ class RakutenSecurityScraper(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/RakutenSecurityScraper/ListWithdrawalHistorys',
+        return grpc.experimental.unary_unary(request, target, '/RakutenSecurityScraper/ListWithdrawalHistories',
             rakuten__security__scraper__pb2.Request.SerializeToString,
             rakuten__security__scraper__pb2.Response.FromString,
             options, channel_credentials,
