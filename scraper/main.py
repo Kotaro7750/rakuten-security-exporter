@@ -3,7 +3,9 @@ import pathlib
 import rakuten_security_scraper_pb2_grpc
 import rakuten_security_scraper_pb2
 import grpc
+import sys
 from concurrent import futures
+from logging import getLogger, StreamHandler
 import cache
 
 
@@ -45,6 +47,11 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
 id = os.environ['RAKUTEN_SEC_ID']
 password = os.environ['RAKUTEN_SEC_PASSWORD']
 download_dir = os.environ['DOWNLOAD_DIR']
+
+logger = getLogger("rakuten-security-scraper")
+logger.setLevel('INFO')
+stream_handler = StreamHandler(stream=sys.stdout)
+logger.addHandler(stream_handler)
 
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 rakuten_security_scraper_pb2_grpc.add_RakutenSecurityScraperServicer_to_server(

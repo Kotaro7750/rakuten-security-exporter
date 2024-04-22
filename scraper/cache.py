@@ -2,6 +2,9 @@ import scraper
 import pathlib
 import datetime
 import parse_csv
+from logging import getLogger
+
+logger = getLogger("rakuten-security-scraper")
 
 
 class CachedRakutenSecurityScraper():
@@ -17,9 +20,9 @@ class CachedRakutenSecurityScraper():
         self.ttl_second = ttl_second
 
     def _is_file_cached(self, path):
-        print(path)
+        logger.info("Check if %s exists", path)
         if not pathlib.Path(path).exists():
-            print("not exist")
+            logger.info("%s does not exist", path)
             return False
 
         timestamp = pathlib.Path(path).stat().st_mtime
