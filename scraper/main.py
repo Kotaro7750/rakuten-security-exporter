@@ -57,6 +57,6 @@ server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 rakuten_security_scraper_pb2_grpc.add_RakutenSecurityScraperServicer_to_server(
     RakutenSecurityScraperServicer(id, password, download_dir), server)
 
-server.add_insecure_port("localhost:50051")
+server.add_insecure_port("0.0.0.0:50051")
 server.start()
 server.wait_for_termination()
