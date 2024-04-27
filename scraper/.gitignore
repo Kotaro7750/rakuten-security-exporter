@@ -1,4 +1,5 @@
 /__pycache__/
+env
 /downloaded/*
 !/downloaded/.gitkeep
 /debug_info/*
