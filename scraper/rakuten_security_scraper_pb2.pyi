@@ -62,3 +62,35 @@ class DividendHistory(_message.Message):
     total_taxes: float
     dividend_total: float
     def __init__(self, date: _Optional[str] = ..., account: _Optional[str] = ..., type: _Optional[str] = ..., ticker: _Optional[str] = ..., name: _Optional[str] = ..., currency: _Optional[str] = ..., count: _Optional[float] = ..., dividend_unitprice: _Optional[float] = ..., dividend_total_before_taxes: _Optional[float] = ..., total_taxes: _Optional[float] = ..., dividend_total: _Optional[float] = ...) -> None: ...
+
+class TotalAssetRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class TotalAssetResponse(_message.Message):
+    __slots__ = ("asset",)
+    ASSET_FIELD_NUMBER: _ClassVar[int]
+    asset: _containers.RepeatedCompositeFieldContainer[Asset]
+    def __init__(self, asset: _Optional[_Iterable[_Union[Asset, _Mapping]]] = ...) -> None: ...
+
+class Asset(_message.Message):
+    __slots__ = ("type", "ticker", "name", "account", "count", "average_acquisition_price", "current_unit_price", "current_price", "current_price_yen")
+    TYPE_FIELD_NUMBER: _ClassVar[int]
+    TICKER_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    AVERAGE_ACQUISITION_PRICE_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_UNIT_PRICE_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_PRICE_FIELD_NUMBER: _ClassVar[int]
+    CURRENT_PRICE_YEN_FIELD_NUMBER: _ClassVar[int]
+    type: str
+    ticker: str
+    name: str
+    account: str
+    count: float
+    average_acquisition_price: float
+    current_unit_price: float
+    current_price: float
+    current_price_yen: float
+    def __init__(self, type: _Optional[str] = ..., ticker: _Optional[str] = ..., name: _Optional[str] = ..., account: _Optional[str] = ..., count: _Optional[float] = ..., average_acquisition_price: _Optional[float] = ..., current_unit_price: _Optional[float] = ..., current_price: _Optional[float] = ..., current_price_yen: _Optional[float] = ...) -> None: ...

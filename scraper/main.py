@@ -43,6 +43,14 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
 
         return response
 
+    def TotalAssets(self, request, context):
+        asset = self.cache.GetTotalAsset()
+
+        response = rakuten_security_scraper_pb2.TotalAssetResponse()
+        response.asset.extend([self._convertToAsset(e) for e in asset])
+
+        return response
+
     def _covertToWithdrawalHisoty(self, elem):
         return rakuten_security_scraper_pb2.WithdrawalHistory(
             date=elem["date"],
@@ -64,6 +72,19 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
             dividend_total_before_taxes=elem["dividend_total_before_taxes"],
             total_taxes=elem["total_taxes"],
             dividend_total=elem["dividend_total"]
+        )
+
+    def _convertToAsset(self, elem):
+        return rakuten_security_scraper_pb2.Asset(
+                type=elem["type"],
+                ticker=elem["ticker"],
+                name=elem["name"],
+                account=elem["account"],
+                count=elem["count"],
+                average_acquisition_price=elem["average_acquisition_price"],
+                current_unit_price=elem["current_unit_price"],
+                current_price=elem["current_price"],
+                current_price_yen=elem["current_price_yen"]
         )
 
 

@@ -55,3 +55,14 @@ class CachedRakutenSecurityScraper():
                 "dividendlist_*.csv"))[0].rename(path)
 
         return parse_csv.parse_dividend_history(self.download_dir)
+
+    def GetTotalAsset(self):
+        path = pathlib.Path(self.download_dir, "asset.csv")
+
+        if not self._is_file_cached(path):
+            scraper.download_asset_list(
+                self.id, self.password, self.download_dir)
+            list(pathlib.Path(self.download_dir).glob(
+                "assetbalance*.csv"))[0].rename(path)
+
+        return parse_csv.parse_asset(self.download_dir)

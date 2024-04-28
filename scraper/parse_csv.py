@@ -6,7 +6,7 @@ import re
 
 # 日本円の「,」や「123 USD」などを数字のみに直す
 def canonicalize_price(price):
-    return re.sub('[^0-9.]', '', price)
+    return re.sub('[^0-9.]', '', price) or '0'
 
 
 def parse_dividend_history(download_dir):
@@ -74,14 +74,14 @@ def parse_asset(download_dir):
                 'ticker': asset_detail[i][1],
                 'name': asset_detail[i][2],
                 'account': asset_detail[i][3],
-                'count': asset_detail[i][4],
-                'average_acquire_unit_price': asset_detail[i][6],
-                'current_unit_price': asset_detail[i][8],
-                'current_price_yen': canonicalize_price(asset_detail[i][14]),
-                'current_price': canonicalize_price(asset_detail[i][15]),
+                'count': float(asset_detail[i][4]),
+                'average_acquisition_price': float(canonicalize_price(asset_detail[i][6])),
+                'current_unit_price': float(canonicalize_price(asset_detail[i][8])),
+                'current_price_yen': float(canonicalize_price(asset_detail[i][14])),
+                'current_price': float(canonicalize_price(asset_detail[i][15])),
             })
 
-        return json.dumps(jsonArray, indent=4, ensure_ascii=False)
+        return jsonArray
 
 
 # 「資産合計」「保有資産詳細」「参考為替レート」の3つに分解する
