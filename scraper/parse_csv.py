@@ -37,7 +37,7 @@ def parse_dividend_history(download_dir):
                 'dividend_total': float(e['受取金額[円/現地通貨]'])
             })
 
-        return json.dumps(convertedJsonArray, indent=4, ensure_ascii=False)
+        return convertedJsonArray
 
 
 def parse_withdrawal_history(download_dir):

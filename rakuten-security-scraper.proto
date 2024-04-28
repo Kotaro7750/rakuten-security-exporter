@@ -4,6 +4,7 @@ option go_package = "github.com/Kotaro7750/rakuten-security-exporter/main";
 
 service RakutenSecurityScraper {
   rpc ListWithdrawalHistories(ListWithdrawalHistoriesRequest) returns (ListWithdrawalHistoriesResponse) {}
+  rpc ListDividendHistories(ListDividendHistoriesRequest) returns (ListDividendHistoriesResponse) {}
 }
 
 message ListWithdrawalHistoriesRequest {}
@@ -17,4 +18,24 @@ message WithdrawalHistory {
   uint64 amount = 2;
   string type = 3;
   string currency = 4;
+}
+
+message ListDividendHistoriesRequest {};
+
+message ListDividendHistoriesResponse {
+  repeated DividendHistory history = 1;
+}
+
+message DividendHistory {
+  string date = 1;
+  string account = 2;
+  string type = 3;
+  string ticker = 4;
+  string name = 5;
+  string currency = 6;
+  double count = 7;
+  double dividend_unitprice = 8;
+  double dividend_total_before_taxes = 9;
+  double total_taxes = 10;
+  double dividend_total = 11;
 }

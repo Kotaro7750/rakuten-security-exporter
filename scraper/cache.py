@@ -44,3 +44,14 @@ class CachedRakutenSecurityScraper():
                 "Withdrawal*.csv"))[0].rename(path)
 
         return parse_csv.parse_withdrawal_history(self.download_dir)
+
+    def GetDividendHistories(self):
+        path = pathlib.Path(self.download_dir, "dividend.csv")
+
+        if not self._is_file_cached(path):
+            scraper.download_dividened_history(
+                self.id, self.password, self.download_dir)
+            list(pathlib.Path(self.download_dir).glob(
+                "dividendlist_*.csv"))[0].rename(path)
+
+        return parse_csv.parse_dividend_history(self.download_dir)

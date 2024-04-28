@@ -20,7 +20,7 @@ func main() {
 
 	client := NewRakutenSecurityScraperClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	withdrawal_history, err := client.ListWithdrawalHistories(ctx, &ListWithdrawalHistoriesRequest{})
@@ -29,4 +29,11 @@ func main() {
 	}
 
 	log.Printf("response %v", withdrawal_history)
+
+	dividend_history, err := client.ListDividendHistories(ctx, &ListDividendHistoriesRequest{})
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	log.Printf("response %v", dividend_history)
 }
