@@ -16,8 +16,8 @@ class RakutenSecurityScraperStub(object):
         """
         self.ListWithdrawalHistories = channel.unary_unary(
                 '/RakutenSecurityScraper/ListWithdrawalHistories',
-                request_serializer=rakuten__security__scraper__pb2.Request.SerializeToString,
-                response_deserializer=rakuten__security__scraper__pb2.Response.FromString,
+                request_serializer=rakuten__security__scraper__pb2.ListWithdrawalHistoriesRequest.SerializeToString,
+                response_deserializer=rakuten__security__scraper__pb2.ListWithdrawalHistoriesResponse.FromString,
                 )
 
 
@@ -35,8 +35,8 @@ def add_RakutenSecurityScraperServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'ListWithdrawalHistories': grpc.unary_unary_rpc_method_handler(
                     servicer.ListWithdrawalHistories,
-                    request_deserializer=rakuten__security__scraper__pb2.Request.FromString,
-                    response_serializer=rakuten__security__scraper__pb2.Response.SerializeToString,
+                    request_deserializer=rakuten__security__scraper__pb2.ListWithdrawalHistoriesRequest.FromString,
+                    response_serializer=rakuten__security__scraper__pb2.ListWithdrawalHistoriesResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -60,7 +60,7 @@ class RakutenSecurityScraper(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/RakutenSecurityScraper/ListWithdrawalHistories',
-            rakuten__security__scraper__pb2.Request.SerializeToString,
-            rakuten__security__scraper__pb2.Response.FromString,
+            rakuten__security__scraper__pb2.ListWithdrawalHistoriesRequest.SerializeToString,
+            rakuten__security__scraper__pb2.ListWithdrawalHistoriesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

@@ -23,7 +23,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	withdrawal_history, err := client.ListWithdrawalHistories(ctx, &Request{Argument: 1})
+	withdrawal_history, err := client.ListWithdrawalHistories(ctx, &ListWithdrawalHistoriesRequest{})
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}

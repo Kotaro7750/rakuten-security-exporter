@@ -5,13 +5,11 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
-class Request(_message.Message):
-    __slots__ = ("argument",)
-    ARGUMENT_FIELD_NUMBER: _ClassVar[int]
-    argument: int
-    def __init__(self, argument: _Optional[int] = ...) -> None: ...
+class ListWithdrawalHistoriesRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
 
-class Response(_message.Message):
+class ListWithdrawalHistoriesResponse(_message.Message):
     __slots__ = ("history",)
     HISTORY_FIELD_NUMBER: _ClassVar[int]
     history: _containers.RepeatedCompositeFieldContainer[WithdrawalHistory]

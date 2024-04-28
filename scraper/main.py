@@ -24,13 +24,13 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
             f.unlink()
 
         self.cache = cache.CachedRakutenSecurityScraper(
-            id, password, download_dir, 30)
+            id, password, download_dir, 86400)
 
     def ListWithdrawalHistories(self, request, context):
 
         history = self.cache.GetWithdrawalHistories()
 
-        response = rakuten_security_scraper_pb2.Response()
+        response = rakuten_security_scraper_pb2.ListWithdrawalHistoriesResponse()
         response.history.extend(
             [self._covertToWithdrawalHisoty(e) for e in history])
         return response
