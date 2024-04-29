@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/bojanz/currency"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -35,7 +37,7 @@ func main() {
 		log.Fatalf("error %v", err)
 	}
 
-  log.Printf("withdrawalStat: %v", constructWithdrawalStatistics(withdrawal_history))
+	log.Printf("withdrawalStat: %v", constructWithdrawalStatistics(withdrawal_history))
 
 	dividend_history, err := client.ListDividendHistories(ctx, &ListDividendHistoriesRequest{})
 	if err != nil {
@@ -46,26 +48,29 @@ func main() {
 }
 
 type WithdrawalSummary struct {
-	TotalInvestmentAmount float64
-	Currency              string
+	TotalInvestmentAmount currency.Amount
 }
 
 func constructWithdrawalStatistics(withdrawalHistories *ListWithdrawalHistoriesResponse) WithdrawalSummary {
-	var totalInvestmentAmount float64 = 0
+	var total float64 = 0
 
 	for _, withdrawalHistory := range withdrawalHistories.GetHistory() {
 		withdrawalType := withdrawalHistory.GetType()
 		amount := float64(withdrawalHistory.GetAmount())
 
 		if withdrawalType == "in" {
-			totalInvestmentAmount += amount
+			total += amount
 		} else if withdrawalType == "out" {
-			totalInvestmentAmount -= amount
+			total -= amount
 		}
 	}
 
-	return WithdrawalSummary{
-		TotalInvestmentAmount: totalInvestmentAmount,
-		Currency:              "YEN",
+	totalAmount, err := currency.NewAmount(strconv.FormatFloat(total, 'f', -1, 64), "JPY")
+	if err != nil {
+		log.Fatalf("error %f", err)
 	}
+
+	return WithdrawalSummary{
+    TotalInvestmentAmount: totalAmount,
+  }
 }

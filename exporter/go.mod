@@ -3,6 +3,8 @@ module github.com/Kotaro7750/rakuten-security-exporter
 go 1.21.3
 
 require (
+	github.com/bojanz/currency v1.2.3 // indirect
+	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
