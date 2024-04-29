@@ -1,5 +1,5 @@
 PROTO=./rakuten-security-scraper.proto
-GO_DIR=./exporter
+GO_DIR=./exporter/proto
 PYTHON_DIR=./scraper
 
 PYTHON_ARTIFACTS=$(PYTHON_DIR)/rakuten_security_scraper_pb2.py $(PYTHON_DIR)/rakuten_security_scraper_pb2.pyi $(PYTHON_DIR)/rakuten_security_scraper_pb2_grpc.py

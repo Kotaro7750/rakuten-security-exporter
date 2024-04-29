@@ -4,7 +4,7 @@
 // - protoc             v5.26.1
 // source: rakuten-security-scraper.proto
 
-package main
+package proto
 
 import (
 	context "context"
