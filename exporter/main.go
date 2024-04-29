@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("error %v", err)
 	}
 
-	log.Printf("response %v", withdrawal_history)
+  log.Printf("withdrawalStat: %v", constructWithdrawalStatistics(withdrawal_history))
 
 	dividend_history, err := client.ListDividendHistories(ctx, &ListDividendHistoriesRequest{})
 	if err != nil {
@@ -43,4 +43,29 @@ func main() {
 	}
 
 	log.Printf("response %v", dividend_history)
+}
+
+type WithdrawalSummary struct {
+	TotalInvestmentAmount float64
+	Currency              string
+}
+
+func constructWithdrawalStatistics(withdrawalHistories *ListWithdrawalHistoriesResponse) WithdrawalSummary {
+	var totalInvestmentAmount float64 = 0
+
+	for _, withdrawalHistory := range withdrawalHistories.GetHistory() {
+		withdrawalType := withdrawalHistory.GetType()
+		amount := float64(withdrawalHistory.GetAmount())
+
+		if withdrawalType == "in" {
+			totalInvestmentAmount += amount
+		} else if withdrawalType == "out" {
+			totalInvestmentAmount -= amount
+		}
+	}
+
+	return WithdrawalSummary{
+		TotalInvestmentAmount: totalInvestmentAmount,
+		Currency:              "YEN",
+	}
 }
