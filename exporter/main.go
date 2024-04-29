@@ -31,29 +31,22 @@ func main() {
 		log.Fatalf("error %v", err)
 	}
 
-	assets, err := constructAsset(total_asset)
-	if err != nil {
-		log.Fatalf("error %v", err)
-	}
-
-	assetSummary, err := assets.Summarize()
-	if err != nil {
-		log.Fatalf("error %v", err)
-	}
-
-	performance, err := assetSummary.PerformanceExcludingCurrencyImpact()
-	if err != nil {
-		log.Fatalf("error %v", err)
-	}
-
-	log.Printf("response %v %v %v", assetSummary.totalPrice.Number(), assetSummary.totalAcquisitionPrice.Number(), performance)
-
 	withdrawal_history, err := client.ListWithdrawalHistories(ctx, &proto.ListWithdrawalHistoriesRequest{})
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
 
-	log.Printf("withdrawalStat: %v", constructWithdrawalStatistics(withdrawal_history))
+	investmentReport, err := ConstructInvestmentReport(total_asset, withdrawal_history)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	performance, err := investmentReport.Performance()
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	log.Printf("performance %v", performance)
 
 	dividend_history, err := client.ListDividendHistories(ctx, &proto.ListDividendHistoriesRequest{})
 	if err != nil {
@@ -61,6 +54,67 @@ func main() {
 	}
 
 	log.Printf("response %v", dividend_history)
+}
+
+type InvestmentReport struct {
+	asset                Asset
+	depositAndWithdrawal WithdrawalSummary
+	rateManager          RateManager
+}
+
+func ConstructInvestmentReport(assetResponse *proto.TotalAssetResponse, withdrawalHistoryResponse *proto.ListWithdrawalHistoriesResponse) (InvestmentReport, error) {
+	asset, err := constructAsset(assetResponse)
+	if err != nil {
+		return InvestmentReport{}, err
+	}
+
+	depositAndWithdrawal := constructWithdrawalStatistics(withdrawalHistoryResponse)
+
+	rateManager := NewRateManager()
+
+	err = rateManager.RegisterRate("USD", "JPY", "156.45")
+	if err != nil {
+		return InvestmentReport{}, err
+	}
+
+	return InvestmentReport{asset, depositAndWithdrawal, rateManager}, nil
+}
+
+func (ir *InvestmentReport) Performance() (float64, error) {
+	totalInvestmentAmount := ir.depositAndWithdrawal.TotalInvestmentAmount
+
+	assetSummary, err := ir.asset.Summarize()
+	if err != nil {
+		return 1, err
+	}
+
+	assetTotalPrice := assetSummary.totalPrice
+
+	rate, err := ir.rateManager.GetRate(assetTotalPrice.CurrencyCode(), totalInvestmentAmount.CurrencyCode())
+	if err != nil {
+		return 1, err
+	}
+
+	convertedAssetTotalPrice, err := assetTotalPrice.Convert(totalInvestmentAmount.CurrencyCode(), rate)
+	if err != nil {
+		return 1, err
+	}
+
+	totalInvestmentAmount.Number()
+	totalInvestmentAmountFloat, err := strconv.ParseFloat(totalInvestmentAmount.Number(), 64)
+	if err != nil {
+		return 1, err
+	}
+
+	convertedAssetTotalPrice.Number()
+	convertedAssetTotalPriceFloat, err := strconv.ParseFloat(convertedAssetTotalPrice.Number(), 64)
+	if err != nil {
+		return 1, err
+	}
+
+	log.Printf("%f %f", convertedAssetTotalPriceFloat, totalInvestmentAmountFloat)
+
+	return convertedAssetTotalPriceFloat / totalInvestmentAmountFloat, nil
 }
 
 type Asset []*IndividualAsset
