@@ -1,37 +1,79 @@
 package main
 
 import (
-	"log"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
 	"github.com/bojanz/currency"
 )
 
-type WithdrawalSummary struct {
-	TotalInvestmentAmount currency.Amount
+type DepositWithdrawalHistory []DepositWithdrawal
+
+func constructDepositWithdrawalHistory(protoWithdrawalHistory *proto.ListWithdrawalHistoriesResponse) (DepositWithdrawalHistory, error) {
+	depositWithdrawalHistory := make(DepositWithdrawalHistory, 0)
+
+	for _, protoWithdrawal := range protoWithdrawalHistory.GetHistory() {
+		depositWithdrawal, err := newDepositWithdrawal(protoWithdrawal)
+		if err != nil {
+			return DepositWithdrawalHistory{}, err
+		}
+
+		depositWithdrawalHistory = append(depositWithdrawalHistory, depositWithdrawal)
+	}
+
+	return depositWithdrawalHistory, nil
 }
 
-func constructWithdrawalStatistics(withdrawalHistories *proto.ListWithdrawalHistoriesResponse) WithdrawalSummary {
-	var total float64 = 0
+func (dwh *DepositWithdrawalHistory) totalInvestmentAmount(targetCurrencyCode string, rateManager *RateManager) (currency.Amount, error) {
+	totalInvestmentAmount, err := currency.NewAmount("0", targetCurrencyCode)
+	if err != nil {
+		return currency.Amount{}, err
+	}
 
-	for _, withdrawalHistory := range withdrawalHistories.GetHistory() {
-		withdrawalType := withdrawalHistory.GetType()
-		amount := float64(withdrawalHistory.GetAmount())
+	for _, depositWithdrawal := range *dwh {
+		rate, err := rateManager.GetRate(depositWithdrawal.amount.CurrencyCode(), targetCurrencyCode)
+		if err != nil {
+			return currency.Amount{}, err
+		}
 
-		if withdrawalType == "in" {
-			total += amount
-		} else if withdrawalType == "out" {
-			total -= amount
+		convertedAmount, err := depositWithdrawal.amount.Convert(targetCurrencyCode, rate)
+		if err != nil {
+			return currency.Amount{}, err
+		}
+
+		totalInvestmentAmount, err = totalInvestmentAmount.Add(convertedAmount)
+		if err != nil {
+			return currency.Amount{}, err
 		}
 	}
 
-	totalAmount, err := currency.NewAmount(strconv.FormatFloat(total, 'f', -1, 64), "JPY")
+	return totalInvestmentAmount, nil
+}
+
+type DepositWithdrawal struct {
+	date   time.Time
+	amount currency.Amount
+}
+
+func newDepositWithdrawal(protoWithdrawalHistory *proto.WithdrawalHistory) (DepositWithdrawal, error) {
+	date, err := time.Parse("2006/01/02", protoWithdrawalHistory.GetDate())
 	if err != nil {
-		log.Fatalf("error %f", err)
+		return DepositWithdrawal{}, nil
 	}
 
-	return WithdrawalSummary{
-		TotalInvestmentAmount: totalAmount,
+	inOrOut := protoWithdrawalHistory.GetType()
+	amountStr := strconv.FormatUint(protoWithdrawalHistory.GetAmount(), 10)
+	if inOrOut == "out" {
+		amountStr = strings.Join([]string{"-", amountStr}, "")
 	}
+
+	// TODO
+	amount, err := currency.NewAmount(amountStr, "JPY")
+	if err != nil {
+		return DepositWithdrawal{}, err
+	}
+
+	return DepositWithdrawal{date, amount}, nil
 }

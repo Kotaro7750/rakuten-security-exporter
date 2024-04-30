@@ -54,10 +54,10 @@ func main() {
 }
 
 type InvestmentReport struct {
-	asset                Asset
-	depositAndWithdrawal WithdrawalSummary
-	dividendHistory      DividendHistory
-	rateManager          RateManager
+	asset                       Asset
+	depositAndWithdrawalHistory DepositWithdrawalHistory
+	dividendHistory             DividendHistory
+	rateManager                 RateManager
 }
 
 type PerformanceReport struct {
@@ -88,7 +88,10 @@ func ConstructInvestmentReport(
 		return InvestmentReport{}, err
 	}
 
-	depositAndWithdrawal := constructWithdrawalStatistics(withdrawalHistoryResponse)
+	depositAndWithdrawalHistory, err := constructDepositWithdrawalHistory(withdrawalHistoryResponse)
+	if err != nil {
+		return InvestmentReport{}, err
+	}
 
 	dividendHistory, err := ConstructDividendHistory(dividendHistoryResponse)
 	if err != nil {
@@ -97,12 +100,12 @@ func ConstructInvestmentReport(
 
 	rateManager := NewRateManager()
 
-	err = rateManager.RegisterRate("USD", "JPY", "156.45")
+	err = rateManager.RegisterRate("USD", "JPY", 156.45)
 	if err != nil {
 		return InvestmentReport{}, err
 	}
 
-	return InvestmentReport{asset, depositAndWithdrawal, dividendHistory, rateManager}, nil
+	return InvestmentReport{asset, depositAndWithdrawalHistory, dividendHistory, rateManager}, nil
 }
 
 func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time) (PerformanceReport, error) {
@@ -128,7 +131,10 @@ func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time) (Per
 }
 
 func (ir *InvestmentReport) Performance() (float64, error) {
-	totalInvestmentAmount := ir.depositAndWithdrawal.TotalInvestmentAmount
+	totalInvestmentAmount, err := ir.depositAndWithdrawalHistory.totalInvestmentAmount("JPY", &ir.rateManager)
+	if err != nil {
+		return 1, err
+	}
 
 	assetSummary, err := ir.asset.Summarize()
 	if err != nil {

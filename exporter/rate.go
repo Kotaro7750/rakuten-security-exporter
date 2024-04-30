@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/bojanz/currency"
 )
 
@@ -22,31 +24,30 @@ func NewRateManager() RateManager {
 	return RateManager{rate: make(map[string]string)}
 }
 
-func (nr *RateManager) RegisterRate(originalCurrencyCode string, targetCurrencyCode string, rate string) error {
-	// Check argument validity by actually converting
-	original, err := currency.NewAmount("1", originalCurrencyCode)
-	if err != nil {
+func (nr *RateManager) RegisterRate(originalCurrencyCode string, targetCurrencyCode string, rate float64) error {
+	if err := checkExchangeValidity(originalCurrencyCode, targetCurrencyCode, rate); err != nil {
+		return err
+	}
+	if err := checkExchangeValidity(targetCurrencyCode, originalCurrencyCode, 1/rate); err != nil {
 		return err
 	}
 
-	_, err = original.Convert(targetCurrencyCode, rate)
-	if err != nil {
-		return err
-	}
+	rateStr := strconv.FormatFloat(rate, 'f', -1, 64)
+	inverseRateStr := strconv.FormatFloat(1/rate, 'f', -1, 64)
 
-	nr.rate[fmt.Sprintf("%s/%s", targetCurrencyCode, originalCurrencyCode)] = rate
+	nr.rate[fmt.Sprintf("%s/%s", targetCurrencyCode, originalCurrencyCode)] = rateStr
+	nr.rate[fmt.Sprintf("%s/%s", originalCurrencyCode, targetCurrencyCode)] = inverseRateStr
 	return nil
 }
 
 func (nr *RateManager) GetRate(originalCurrencyCode string, targetCurrencyCode string) (string, error) {
-	original, err := currency.NewAmount("1", originalCurrencyCode)
+	err := checkExchangeValidity(originalCurrencyCode, targetCurrencyCode, 1)
 	if err != nil {
 		return "", err
 	}
 
-	_, err = original.Convert(targetCurrencyCode, "2.0")
-	if err != nil {
-		return "", err
+	if originalCurrencyCode == targetCurrencyCode {
+		return "1", nil
 	}
 
 	rate, exists := nr.rate[fmt.Sprintf("%s/%s", targetCurrencyCode, originalCurrencyCode)]
@@ -56,4 +57,18 @@ func (nr *RateManager) GetRate(originalCurrencyCode string, targetCurrencyCode s
 	}
 
 	return rate, nil
+}
+
+func checkExchangeValidity(originalCurrencyCode string, targetCurrencyCode string, rate float64) error {
+	original, err := currency.NewAmount("1", originalCurrencyCode)
+	if err != nil {
+		return err
+	}
+
+	_, err = original.Convert(targetCurrencyCode, strconv.FormatFloat(rate, 'f', -1, 64))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
