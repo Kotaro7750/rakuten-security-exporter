@@ -8,8 +8,19 @@ import (
 	"github.com/bojanz/currency"
 )
 
-func amountRatio(dividend currency.Amount, divisor currency.Amount) (float64, error) {
-	dividendFloat, err := strconv.ParseFloat(dividend.Number(), 64)
+func amountRatio(dividend currency.Amount, divisor currency.Amount, rateManager *RateManager) (float64, error) {
+	// Align currency to divisor
+	rate, err := rateManager.GetRate(dividend.CurrencyCode(), divisor.CurrencyCode())
+	if err != nil {
+		return 1, err
+	}
+
+	convertedDividend, err := dividend.Convert(dividend.CurrencyCode(), rate)
+	if err != nil {
+		return 1, err
+	}
+
+	dividendFloat, err := strconv.ParseFloat(convertedDividend.Number(), 64)
 	if err != nil {
 		return 1, err
 	}

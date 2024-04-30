@@ -41,7 +41,6 @@ func (asset *Asset) Summarize() (*AssetSummary, error) {
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	return &AssetSummary{totalAcquisitionPrice, totalPrice}, nil
@@ -52,8 +51,8 @@ type AssetSummary struct {
 	totalPrice            currency.Amount
 }
 
-func (assetSummary *AssetSummary) PerformanceExcludingCurrencyImpact() (float64, error) {
-	return amountRatio(assetSummary.totalPrice, assetSummary.totalAcquisitionPrice)
+func (assetSummary *AssetSummary) PerformanceExcludingCurrencyImpact(rateManager *RateManager) (float64, error) {
+	return amountRatio(assetSummary.totalPrice, assetSummary.totalAcquisitionPrice, rateManager)
 }
 
 type IndividualAsset struct {
@@ -95,6 +94,6 @@ func NewIndividualAsset(asset *proto.Asset) (*IndividualAsset, error) {
 	}, nil
 }
 
-func (individualAsset *IndividualAsset) PerformanceExcludingCurrencyImpact() (float64, error) {
-	return amountRatio(individualAsset.currentUnitPrice, individualAsset.averageAcquisitionPrice)
+func (individualAsset *IndividualAsset) PerformanceExcludingCurrencyImpact(rateManager *RateManager) (float64, error) {
+	return amountRatio(individualAsset.currentUnitPrice, individualAsset.averageAcquisitionPrice, rateManager)
 }

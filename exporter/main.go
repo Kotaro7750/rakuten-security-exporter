@@ -119,7 +119,7 @@ func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time) (Per
 		return PerformanceReport{}, err
 	}
 
-	performanceExcludingCurrencyImpact, err := assetSummary.PerformanceExcludingCurrencyImpact()
+	performanceExcludingCurrencyImpact, err := assetSummary.PerformanceExcludingCurrencyImpact(&ir.rateManager)
 	if err != nil {
 		return PerformanceReport{}, err
 	}
