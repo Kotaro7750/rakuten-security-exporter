@@ -45,7 +45,7 @@ func main() {
 		log.Fatalf("error %v", err)
 	}
 
-	performance, err := investmentReport.Performance()
+	performance, err := investmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local))
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
@@ -58,6 +58,23 @@ type InvestmentReport struct {
 	depositAndWithdrawal WithdrawalSummary
 	dividendHistory      DividendHistory
 	rateManager          RateManager
+}
+
+type PerformanceReport struct {
+	PerformanceExcludingCurrencyImpact Performance
+	Performance                        Performance
+}
+
+type Performance struct {
+	totalReturn  float64
+	annualReturn float64
+}
+
+func NewPerformance(totalReturn float64, startDate time.Time) Performance {
+	return Performance{
+		totalReturn:  totalReturn,
+		annualReturn: calcAnnualReturn(totalReturn, startDate, time.Now()),
+	}
 }
 
 func ConstructInvestmentReport(
@@ -86,6 +103,28 @@ func ConstructInvestmentReport(
 	}
 
 	return InvestmentReport{asset, depositAndWithdrawal, dividendHistory, rateManager}, nil
+}
+
+func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time) (PerformanceReport, error) {
+	performance, err := ir.Performance()
+	if err != nil {
+		return PerformanceReport{}, err
+	}
+
+	assetSummary, err := ir.asset.Summarize()
+	if err != nil {
+		return PerformanceReport{}, err
+	}
+
+	performanceExcludingCurrencyImpact, err := assetSummary.PerformanceExcludingCurrencyImpact()
+	if err != nil {
+		return PerformanceReport{}, err
+	}
+
+	return PerformanceReport{
+		PerformanceExcludingCurrencyImpact: NewPerformance(performanceExcludingCurrencyImpact, startDate),
+		Performance:                        NewPerformance(performance, startDate),
+	}, nil
 }
 
 func (ir *InvestmentReport) Performance() (float64, error) {
