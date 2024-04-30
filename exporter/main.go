@@ -35,7 +35,12 @@ func main() {
 		log.Fatalf("error %v", err)
 	}
 
-	investmentReport, err := ConstructInvestmentReport(total_asset, withdrawal_history)
+	dividend_history, err := client.ListDividendHistories(ctx, &proto.ListDividendHistoriesRequest{})
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	investmentReport, err := ConstructInvestmentReport(total_asset, withdrawal_history, dividend_history)
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
@@ -46,28 +51,32 @@ func main() {
 	}
 
 	log.Printf("performance %v", performance)
-
-	dividend_history, err := client.ListDividendHistories(ctx, &proto.ListDividendHistoriesRequest{})
-	if err != nil {
-		log.Fatalf("error %v", err)
-	}
-
-	log.Printf("response %v", dividend_history)
 }
 
 type InvestmentReport struct {
 	asset                Asset
 	depositAndWithdrawal WithdrawalSummary
+	dividendHistory      DividendHistory
 	rateManager          RateManager
 }
 
-func ConstructInvestmentReport(assetResponse *proto.TotalAssetResponse, withdrawalHistoryResponse *proto.ListWithdrawalHistoriesResponse) (InvestmentReport, error) {
+func ConstructInvestmentReport(
+	assetResponse *proto.TotalAssetResponse,
+	withdrawalHistoryResponse *proto.ListWithdrawalHistoriesResponse,
+	dividendHistoryResponse *proto.ListDividendHistoriesResponse,
+) (InvestmentReport, error) {
+
 	asset, err := constructAsset(assetResponse)
 	if err != nil {
 		return InvestmentReport{}, err
 	}
 
 	depositAndWithdrawal := constructWithdrawalStatistics(withdrawalHistoryResponse)
+
+	dividendHistory, err := ConstructDividendHistory(dividendHistoryResponse)
+	if err != nil {
+		return InvestmentReport{}, err
+	}
 
 	rateManager := NewRateManager()
 
@@ -76,7 +85,7 @@ func ConstructInvestmentReport(assetResponse *proto.TotalAssetResponse, withdraw
 		return InvestmentReport{}, err
 	}
 
-	return InvestmentReport{asset, depositAndWithdrawal, rateManager}, nil
+	return InvestmentReport{asset, depositAndWithdrawal, dividendHistory, rateManager}, nil
 }
 
 func (ir *InvestmentReport) Performance() (float64, error) {
