@@ -8,6 +8,28 @@ import (
 	"github.com/bojanz/currency"
 )
 
+func addAmount(a currency.Amount, b currency.Amount, targetCurrencyCode string, rateManager *RateManager) (currency.Amount, error) {
+	if a.IsZero() && b.IsZero() {
+		return currency.NewAmount("0", targetCurrencyCode)
+	} else if a.IsZero() {
+		return rateManager.Convert(b, targetCurrencyCode)
+	} else if b.IsZero() {
+		return rateManager.Convert(a, targetCurrencyCode)
+	}
+
+	convertedA, err := rateManager.Convert(a, targetCurrencyCode)
+	if err != nil {
+		return currency.Amount{}, err
+	}
+
+	convertedB, err := rateManager.Convert(b, targetCurrencyCode)
+	if err != nil {
+		return currency.Amount{}, err
+	}
+
+	return convertedA.Add(convertedB)
+}
+
 func amountRatio(dividend currency.Amount, divisor currency.Amount, rateManager *RateManager) (float64, error) {
 	// Align currency to divisor
 	rate, err := rateManager.GetRate(dividend.CurrencyCode(), divisor.CurrencyCode())

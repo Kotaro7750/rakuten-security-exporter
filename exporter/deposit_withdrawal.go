@@ -33,17 +33,7 @@ func (dwh *DepositWithdrawalHistory) totalInvestmentAmount(targetCurrencyCode st
 	}
 
 	for _, depositWithdrawal := range *dwh {
-		rate, err := rateManager.GetRate(depositWithdrawal.amount.CurrencyCode(), targetCurrencyCode)
-		if err != nil {
-			return currency.Amount{}, err
-		}
-
-		convertedAmount, err := depositWithdrawal.amount.Convert(targetCurrencyCode, rate)
-		if err != nil {
-			return currency.Amount{}, err
-		}
-
-		totalInvestmentAmount, err = totalInvestmentAmount.Add(convertedAmount)
+		totalInvestmentAmount, err = addAmount(totalInvestmentAmount, depositWithdrawal.amount, targetCurrencyCode, rateManager)
 		if err != nil {
 			return currency.Amount{}, err
 		}

@@ -59,6 +59,15 @@ func (nr *RateManager) GetRate(originalCurrencyCode string, targetCurrencyCode s
 	return rate, nil
 }
 
+func (nr *RateManager) Convert(amount currency.Amount, targetCurrencyCode string) (currency.Amount, error) {
+	rate, err := nr.GetRate(amount.CurrencyCode(), targetCurrencyCode)
+	if err != nil {
+		return currency.Amount{}, err
+	}
+
+	return amount.Convert(targetCurrencyCode, rate)
+}
+
 func checkExchangeValidity(originalCurrencyCode string, targetCurrencyCode string, rate float64) error {
 	original, err := currency.NewAmount("1", originalCurrencyCode)
 	if err != nil {
