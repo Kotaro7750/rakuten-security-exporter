@@ -45,7 +45,7 @@ func main() {
 		log.Fatalf("error %v", err)
 	}
 
-	performance, err := investmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local))
+	performance, err := investmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), "USD")
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
@@ -138,13 +138,13 @@ func ConstructInvestmentReport(
 	return InvestmentReport{asset, depositAndWithdrawalHistory, dividendHistory, rateManager}, nil
 }
 
-func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time) (PerformanceReport, error) {
-	performance, err := ir.Performance()
+func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time, targetCurrencyCode string) (PerformanceReport, error) {
+	performance, err := ir.Performance(targetCurrencyCode)
 	if err != nil {
 		return PerformanceReport{}, err
 	}
 
-	assetSummary, err := ir.asset.Summarize()
+	assetSummary, err := ir.asset.Summarize(targetCurrencyCode, &ir.rateManager)
 	if err != nil {
 		return PerformanceReport{}, err
 	}
@@ -160,25 +160,19 @@ func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time) (Per
 	}, nil
 }
 
-func (ir *InvestmentReport) Performance() (float64, error) {
-	totalInvestmentAmount, err := ir.depositAndWithdrawalHistory.totalInvestmentAmount("JPY", &ir.rateManager)
+func (ir *InvestmentReport) Performance(targetCurrencyCode string) (float64, error) {
+	totalInvestmentAmount, err := ir.depositAndWithdrawalHistory.totalInvestmentAmount(targetCurrencyCode, &ir.rateManager)
 	if err != nil {
 		return 1, err
 	}
 
-	assetSummary, err := ir.asset.Summarize()
+	assetSummary, err := ir.asset.Summarize(targetCurrencyCode, &ir.rateManager)
 	if err != nil {
 		return 1, err
 	}
 
 	assetTotalPrice := assetSummary.totalPrice
-
-	rate, err := ir.rateManager.GetRate(assetTotalPrice.CurrencyCode(), totalInvestmentAmount.CurrencyCode())
-	if err != nil {
-		return 1, err
-	}
-
-	convertedAssetTotalPrice, err := assetTotalPrice.Convert(totalInvestmentAmount.CurrencyCode(), rate)
+	convertedAssetTotalPrice, err := ir.rateManager.Convert(assetTotalPrice, totalInvestmentAmount.CurrencyCode())
 	if err != nil {
 		return 1, err
 	}

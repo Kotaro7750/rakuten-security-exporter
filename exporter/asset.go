@@ -24,7 +24,7 @@ func constructAsset(assets *proto.TotalAssetResponse) (Asset, error) {
 	return constructedAssets, nil
 }
 
-func (asset *Asset) Summarize() (*AssetSummary, error) {
+func (asset *Asset) Summarize(targetCurrencyCode string, rateManager *RateManager) (*AssetSummary, error) {
 	var totalAcquisitionPrice currency.Amount
 	var totalPrice currency.Amount
 
@@ -32,12 +32,12 @@ func (asset *Asset) Summarize() (*AssetSummary, error) {
 		var err error
 
 		acquisitionPrice, err := individualAsset.averageAcquisitionPrice.Mul(strconv.FormatFloat(individualAsset.count, 'f', -1, 64))
-		totalPrice, err = totalPrice.Add(individualAsset.currentPrice)
+		totalPrice, err = addAmount(totalPrice, individualAsset.currentPrice, targetCurrencyCode, rateManager)
 		if err != nil {
 			return nil, err
 		}
 
-		totalAcquisitionPrice, err = totalAcquisitionPrice.Add(acquisitionPrice)
+		totalAcquisitionPrice, err = addAmount(totalAcquisitionPrice, acquisitionPrice, targetCurrencyCode, rateManager)
 		if err != nil {
 			return nil, err
 		}
