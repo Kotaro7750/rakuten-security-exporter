@@ -56,8 +56,8 @@ def parse_withdrawal_history(download_dir):
             jsonArray.append(row)
 
         return [
-            {'date': e['入出金日'], 'amount': int(e['入金額[円]']), 'type': 'in', 'currency': 'YEN'} if e['入金額[円]']
-            else {'date': e['入出金日'], 'amount': int(e['出金額[円]']), 'type': 'out', 'currency': 'YEN'}
+            {'date': e['入出金日'], 'amount': int(e['入金額[円]']), 'currency': 'JPY'} if e['入金額[円]']
+            else {'date': e['入出金日'], 'amount': -1 * int(e['出金額[円]']), 'currency': 'JPY'}
             for e in jsonArray
         ]
 

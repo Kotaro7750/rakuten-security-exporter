@@ -16,16 +16,14 @@ class ListWithdrawalHistoriesResponse(_message.Message):
     def __init__(self, history: _Optional[_Iterable[_Union[WithdrawalHistory, _Mapping]]] = ...) -> None: ...
 
 class WithdrawalHistory(_message.Message):
-    __slots__ = ("date", "amount", "type", "currency")
+    __slots__ = ("date", "amount", "currency")
     DATE_FIELD_NUMBER: _ClassVar[int]
     AMOUNT_FIELD_NUMBER: _ClassVar[int]
-    TYPE_FIELD_NUMBER: _ClassVar[int]
     CURRENCY_FIELD_NUMBER: _ClassVar[int]
     date: str
     amount: int
-    type: str
     currency: str
-    def __init__(self, date: _Optional[str] = ..., amount: _Optional[int] = ..., type: _Optional[str] = ..., currency: _Optional[str] = ...) -> None: ...
+    def __init__(self, date: _Optional[str] = ..., amount: _Optional[int] = ..., currency: _Optional[str] = ...) -> None: ...
 
 class ListDividendHistoriesRequest(_message.Message):
     __slots__ = ()

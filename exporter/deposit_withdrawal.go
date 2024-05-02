@@ -2,7 +2,6 @@ package main
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
@@ -53,14 +52,9 @@ func newDepositWithdrawal(protoWithdrawalHistory *proto.WithdrawalHistory) (Depo
 		return DepositWithdrawal{}, nil
 	}
 
-	inOrOut := protoWithdrawalHistory.GetType()
-	amountStr := strconv.FormatUint(protoWithdrawalHistory.GetAmount(), 10)
-	if inOrOut == "out" {
-		amountStr = strings.Join([]string{"-", amountStr}, "")
-	}
+	amountStr := strconv.FormatInt(protoWithdrawalHistory.GetAmount(), 10)
 
-	// TODO
-	amount, err := currency.NewAmount(amountStr, "JPY")
+	amount, err := currency.NewAmount(amountStr, protoWithdrawalHistory.Currency)
 	if err != nil {
 		return DepositWithdrawal{}, err
 	}

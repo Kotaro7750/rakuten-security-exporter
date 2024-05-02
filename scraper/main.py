@@ -55,7 +55,6 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
         return rakuten_security_scraper_pb2.WithdrawalHistory(
             date=elem["date"],
             amount=elem["amount"],
-            type=elem["type"],
             currency=elem["currency"]
         )
 

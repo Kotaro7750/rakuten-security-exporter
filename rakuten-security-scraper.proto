@@ -16,9 +16,8 @@ message ListWithdrawalHistoriesResponse {
 
 message WithdrawalHistory {
   string date = 1;
-  uint64 amount = 2;
-  string type = 3;
-  string currency = 4;
+  int64 amount = 2;
+  string currency = 3;
 }
 
 message ListDividendHistoriesRequest {};
