@@ -3,19 +3,101 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/robfig/cron"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type Metrics struct {
+	totalReturn                              prometheus.Gauge
+	totalReturnAnnual                        prometheus.Gauge
+	performanceExcludingCurrencyImpact       prometheus.Gauge
+	performanceExcludingCurrencyImpactAnnual prometheus.Gauge
+}
+
+var registry prometheus.Registry
+
 func main() {
+	threadSafeInvestmentReport := ThreadSafeInvestmentReport{}
+
+	registry = *prometheus.NewRegistry()
+	metrics := Metrics{
+		totalReturn: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "total_return",
+		}),
+		totalReturnAnnual: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "total_return_annual",
+		}),
+		performanceExcludingCurrencyImpact: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "performance_excluding_currency_impact",
+		}),
+		performanceExcludingCurrencyImpactAnnual: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "performance_excluding_currency_impact_annual",
+		}),
+	}
+
+	err := scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.totalReturn)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.totalReturnAnnual)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.performanceExcludingCurrencyImpact)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.performanceExcludingCurrencyImpactAnnual)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	c := cron.New()
+	err = c.AddFunc("*/30 * * * * *", func() {
+		scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
+		if err != nil {
+			log.Fatalf("error %v", err)
+		}
+	})
+
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	c.Start()
+
+	http.Handle("/metrics", promhttp.HandlerFor(&registry, promhttp.HandlerOpts{Registry: &registry}))
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("error %v", err)
+	}
+}
+
+func scrape() (InvestmentReport, error) {
 	var opt []grpc.DialOption = []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	conn, err := grpc.Dial("localhost:50051", opt...)
 	if err != nil {
-		log.Fatalf("dial error %v", err)
+		return InvestmentReport{}, err
 	}
 	defer conn.Close()
 
@@ -26,53 +108,49 @@ func main() {
 
 	total_asset, err := client.TotalAssets(ctx, &proto.TotalAssetRequest{})
 	if err != nil {
-		log.Fatalf("error %v", err)
+		return InvestmentReport{}, err
 	}
 
 	withdrawal_history, err := client.ListWithdrawalHistories(ctx, &proto.ListWithdrawalHistoriesRequest{})
 	if err != nil {
-		log.Fatalf("error %v", err)
+		return InvestmentReport{}, err
 	}
 
 	dividend_history, err := client.ListDividendHistories(ctx, &proto.ListDividendHistoriesRequest{})
 	if err != nil {
-		log.Fatalf("error %v", err)
+		return InvestmentReport{}, err
 	}
 
-	investmentReport, err := ConstructInvestmentReport(total_asset, withdrawal_history, dividend_history)
+	return ConstructInvestmentReport(total_asset, withdrawal_history, dividend_history)
+}
+
+func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport, metrics *Metrics) error {
+	investmentReport, err := scrape()
+	if err != nil {
+		return nil
+	}
+
+	threadSafeInvestmentReport.mu.Lock()
+	defer threadSafeInvestmentReport.mu.Unlock()
+
+	threadSafeInvestmentReport.InvestmentReport = investmentReport
+
+	performance, err := threadSafeInvestmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), "USD")
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
 
-	performance, err := investmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), "USD")
-	if err != nil {
-		log.Fatalf("error %v", err)
-	}
+	metrics.totalReturn.Set(performance.TotalReturn.total)
+	metrics.totalReturnAnnual.Set(performance.TotalReturn.annual)
+	metrics.performanceExcludingCurrencyImpact.Set(performance.PerformanceExcludingCurrencyImpact.total)
+	metrics.performanceExcludingCurrencyImpactAnnual.Set(performance.PerformanceExcludingCurrencyImpact.annual)
 
-	log.Printf("performance %v", performance)
+	return nil
+}
 
-	stat, err := investmentReport.dividendHistory.constructDividendReport("USD", &investmentReport.rateManager)
-	if err != nil {
-		log.Fatalf("error %v", err)
-	}
-
-	for year, dividendReportAnnual := range stat.actual {
-		total, err := dividendReportAnnual.total.calcTotal()
-		if err != nil {
-			log.Fatalf("error %v", err)
-		}
-
-		log.Printf("%d total %s %f", year, total.String(), dividendReportAnnual.totalGrowthRate)
-
-		for security, securityDividendReportAnnual := range dividendReportAnnual.security {
-			total, err := securityDividendReportAnnual.total.calcTotal()
-			if err != nil {
-				log.Fatalf("error %v", err)
-			}
-
-			log.Printf("%d security %s total %s %f unit %s %f", year, security.ticker, total.String(), securityDividendReportAnnual.totalGrowthRate, securityDividendReportAnnual.averageUnitPrice.String(), securityDividendReportAnnual.averageUnitPriceGrowth)
-		}
-	}
+type ThreadSafeInvestmentReport struct {
+	InvestmentReport
+	mu sync.Mutex
 }
 
 type InvestmentReport struct {
