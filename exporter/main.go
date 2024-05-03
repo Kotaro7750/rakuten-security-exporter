@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
@@ -91,19 +90,19 @@ type InvestmentReport struct {
 }
 
 type PerformanceReport struct {
-	PerformanceExcludingCurrencyImpact Performance
-	Performance                        Performance
+	PerformanceExcludingCurrencyImpact Return
+	TotalReturn                        Return
 }
 
-type Performance struct {
-	totalReturn  float64
-	annualReturn float64
+type Return struct {
+	total  float64
+	annual float64
 }
 
-func NewPerformance(totalReturn float64, startDate time.Time) Performance {
-	return Performance{
-		totalReturn:  totalReturn,
-		annualReturn: calcAnnualReturn(totalReturn, startDate, time.Now()),
+func NewReturn(totalReturn float64, startDate time.Time) Return {
+	return Return{
+		total:  totalReturn,
+		annual: calcAnnualReturn(totalReturn, startDate, time.Now()),
 	}
 }
 
@@ -139,11 +138,6 @@ func ConstructInvestmentReport(
 }
 
 func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time, targetCurrencyCode string) (PerformanceReport, error) {
-	performance, err := ir.Performance(targetCurrencyCode)
-	if err != nil {
-		return PerformanceReport{}, err
-	}
-
 	assetSummary, err := ir.asset.Summarize(targetCurrencyCode, &ir.rateManager)
 	if err != nil {
 		return PerformanceReport{}, err
@@ -154,42 +148,18 @@ func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time, targ
 		return PerformanceReport{}, err
 	}
 
-	return PerformanceReport{
-		PerformanceExcludingCurrencyImpact: NewPerformance(performanceExcludingCurrencyImpact, startDate),
-		Performance:                        NewPerformance(performance, startDate),
-	}, nil
-}
-
-func (ir *InvestmentReport) Performance(targetCurrencyCode string) (float64, error) {
 	totalInvestmentAmount, err := ir.depositAndWithdrawalHistory.totalInvestmentAmount(targetCurrencyCode, &ir.rateManager)
 	if err != nil {
-		return 1, err
+		return PerformanceReport{}, err
 	}
 
-	assetSummary, err := ir.asset.Summarize(targetCurrencyCode, &ir.rateManager)
+	totalReturn, err := amountRatio(assetSummary.totalPrice, totalInvestmentAmount, &ir.rateManager)
 	if err != nil {
-		return 1, err
+		return PerformanceReport{}, err
 	}
 
-	assetTotalPrice := assetSummary.totalPrice
-	convertedAssetTotalPrice, err := ir.rateManager.Convert(assetTotalPrice, totalInvestmentAmount.CurrencyCode())
-	if err != nil {
-		return 1, err
-	}
-
-	totalInvestmentAmount.Number()
-	totalInvestmentAmountFloat, err := strconv.ParseFloat(totalInvestmentAmount.Number(), 64)
-	if err != nil {
-		return 1, err
-	}
-
-	convertedAssetTotalPrice.Number()
-	convertedAssetTotalPriceFloat, err := strconv.ParseFloat(convertedAssetTotalPrice.Number(), 64)
-	if err != nil {
-		return 1, err
-	}
-
-	log.Printf("%f %f", convertedAssetTotalPriceFloat, totalInvestmentAmountFloat)
-
-	return convertedAssetTotalPriceFloat / totalInvestmentAmountFloat, nil
+	return PerformanceReport{
+		PerformanceExcludingCurrencyImpact: NewReturn(performanceExcludingCurrencyImpact, startDate),
+		TotalReturn:                        NewReturn(totalReturn, startDate),
+	}, nil
 }
