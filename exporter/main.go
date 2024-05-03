@@ -51,33 +51,26 @@ func main() {
 
 	log.Printf("performance %v", performance)
 
-	stat, err := investmentReport.dividendHistory.constructDividendStatistics("USD", &investmentReport.rateManager)
+	stat, err := investmentReport.dividendHistory.constructDividendReport("USD", &investmentReport.rateManager)
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
 
-	for year, stat := range stat.total {
-		total, err := stat.dividend.calcTotal()
+	for year, dividendReportAnnual := range stat.actual {
+		total, err := dividendReportAnnual.total.calcTotal()
 		if err != nil {
 			log.Fatalf("error %v", err)
 		}
 
-		log.Printf("total dividend: %d %s %f", year, total.String(), stat.totalGrowth)
-	}
+		log.Printf("%d total %s %f", year, total.String(), dividendReportAnnual.totalGrowthRate)
 
-	for _, s := range stat.security {
-		for year, a := range s.statistics {
-			total, err := a.dividend.total.calcTotal()
+		for security, securityDividendReportAnnual := range dividendReportAnnual.security {
+			total, err := securityDividendReportAnnual.total.calcTotal()
 			if err != nil {
 				log.Fatalf("error %v", err)
 			}
 
-			unitPrice, err := a.dividend.unitPrice.calcTotal()
-			if err != nil {
-				log.Fatalf("error %v", err)
-			}
-
-			log.Printf("%s %d total %s %f unit %s %f", s.ticker, year, total.String(), a.totalGrowth, unitPrice.String(), a.unitPriceGrowth)
+			log.Printf("%d security %s total %s %f unit %s %f", year, security.ticker, total.String(), securityDividendReportAnnual.totalGrowthRate, securityDividendReportAnnual.averageUnitPrice.String(), securityDividendReportAnnual.averageUnitPriceGrowth)
 		}
 	}
 }

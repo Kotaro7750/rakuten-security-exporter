@@ -7,6 +7,16 @@ import (
 	"github.com/bojanz/currency"
 )
 
+type Security struct {
+	assetType string
+	ticker    string
+	name      string
+}
+
+func newSecurity(assetType, ticker, name string) Security {
+	return Security{assetType, ticker, name}
+}
+
 type Asset []*IndividualAsset
 
 func constructAsset(assets *proto.TotalAssetResponse) (Asset, error) {

@@ -89,17 +89,134 @@ func (d *Dividend) identifier() string {
 	return strings.Join([]string{d.assetType, d.ticker, d.name}, " ")
 }
 
-func (dh *DividendHistory) constructDividendStatistics(targetCurrency string, rateManager *RateManager) (DividendStatistics, error) {
-	dividendStatistics := newDividendStatistics()
+type DividendReportAnnual struct {
+	total           AnnualDividend
+	totalGrowthRate float64
+	security        map[Security]struct {
+		total                  AnnualDividend
+		totalGrowthRate        float64
+		unitPrice              AnnualDividend
+		averageUnitPrice       currency.Amount
+		averageUnitPriceGrowth float64
+	}
+}
+
+func newDividendReportAnnual() DividendReportAnnual {
+	return DividendReportAnnual{
+		security: make(map[Security]struct {
+			total                  AnnualDividend
+			totalGrowthRate        float64
+			unitPrice              AnnualDividend
+			averageUnitPrice       currency.Amount
+			averageUnitPriceGrowth float64
+		}),
+	}
+}
+
+type DividendReport struct {
+	actual map[int]DividendReportAnnual
+}
+
+func newDividendReport() DividendReport {
+	return DividendReport{actual: make(map[int]DividendReportAnnual)}
+}
+
+func (dh *DividendHistory) constructDividendReport(targetCurrencyCode string, rateManager *RateManager) (DividendReport, error) {
+	dividendReport := newDividendReport()
 
 	for _, dividend := range *dh {
-		err := dividendStatistics.addDividend(&dividend, targetCurrency, rateManager)
-		if err != nil {
-			return newDividendStatistics(), err
+		year := dividend.date.Year()
+		monthIndex := dividend.date.Month() - 1
+
+		dividendReportAnnual, exists := dividendReport.actual[year]
+		if !exists {
+			dividendReportAnnual = newDividendReportAnnual()
 		}
+
+		annualTotal, err := addAmount(dividend.total, dividendReportAnnual.total[monthIndex], targetCurrencyCode, rateManager)
+		if err != nil {
+			return DividendReport{}, err
+		}
+
+		dividendReportAnnual.total[monthIndex] = annualTotal
+
+		// TODO
+		security := newSecurity(dividend.assetType, dividend.ticker, dividend.name)
+		securityDividendReportAnnual := dividendReportAnnual.security[security]
+
+		securityAnnualTotal, err := addAmount(dividend.total, securityDividendReportAnnual.total[monthIndex], targetCurrencyCode, rateManager)
+		if err != nil {
+			return DividendReport{}, err
+		}
+		securityDividendReportAnnual.total[monthIndex] = securityAnnualTotal
+
+		securityAnnualUnitPrice, err := addAmount(dividend.unitPrice, securityDividendReportAnnual.unitPrice[monthIndex], targetCurrencyCode, rateManager)
+		if err != nil {
+			return DividendReport{}, err
+		}
+		securityDividendReportAnnual.unitPrice[monthIndex] = securityAnnualUnitPrice
+
+		securityAnnualAverageUnitPrice, err := securityDividendReportAnnual.unitPrice.calcAverageUnitPrice()
+		if err != nil {
+			return DividendReport{}, err
+		}
+		securityDividendReportAnnual.averageUnitPrice = securityAnnualAverageUnitPrice
+
+		dividendReportAnnual.security[security] = securityDividendReportAnnual
+		dividendReport.actual[year] = dividendReportAnnual
 	}
 
-	return dividendStatistics, nil
+	// Calculate growth
+	for year, dividendReportAnnual := range dividendReport.actual {
+		prevYearDividendReportAnnual, exists := dividendReport.actual[year-1]
+
+		if exists {
+			totalGrowth, err := calcAnnualDividendGrowth(&dividendReportAnnual.total, &prevYearDividendReportAnnual.total, rateManager)
+			if err != nil {
+				return DividendReport{}, err
+			}
+
+			dividendReportAnnual.totalGrowthRate = totalGrowth
+
+			for security, securityDividendReportAnnual := range dividendReportAnnual.security {
+				prevYearSecurityDividendReportAnnual, exists := prevYearDividendReportAnnual.security[security]
+
+				if exists {
+					totalGrowth, err := calcAnnualDividendGrowth(&securityDividendReportAnnual.total, &prevYearSecurityDividendReportAnnual.total, rateManager)
+					if err != nil {
+						return DividendReport{}, err
+					}
+
+					averageUnitPriceGrowth, err := amountRatio(securityDividendReportAnnual.averageUnitPrice, prevYearSecurityDividendReportAnnual.averageUnitPrice, rateManager)
+					if err != nil {
+						return DividendReport{}, err
+					}
+
+					securityDividendReportAnnual.totalGrowthRate = totalGrowth
+					securityDividendReportAnnual.averageUnitPriceGrowth = averageUnitPriceGrowth
+
+				} else {
+					securityDividendReportAnnual.totalGrowthRate = 1
+					securityDividendReportAnnual.averageUnitPriceGrowth = 1
+				}
+
+				dividendReportAnnual.security[security] = securityDividendReportAnnual
+			}
+		} else {
+			dividendReportAnnual.totalGrowthRate = 1
+
+			for security, securityDividendReportAnnual := range dividendReportAnnual.security {
+				securityDividendReportAnnual.totalGrowthRate = 1
+				securityDividendReportAnnual.averageUnitPriceGrowth = 1
+
+				dividendReportAnnual.security[security] = securityDividendReportAnnual
+			}
+		}
+
+		dividendReport.actual[year] = dividendReportAnnual
+	}
+
+	return dividendReport, nil
 }
 
 type AnnualDividend [12]currency.Amount
@@ -133,199 +250,23 @@ func (ad *AnnualDividend) calcTotal() (currency.Amount, error) {
 	return total, nil
 }
 
-type SecurityAnnualDividend struct {
-	total     AnnualDividend
-	unitPrice AnnualDividend
-}
+func (ad *AnnualDividend) calcAverageUnitPrice() (currency.Amount, error) {
+	count := 0
 
-func (sad *SecurityAnnualDividend) addDividend(dividend *Dividend, targetCurrencyCode string, rateManager *RateManager) error {
-	month := dividend.date.Month()
-
-	var err error
-	sad.total[month-1], err = addAmount(sad.total[month-1], dividend.total, targetCurrencyCode, rateManager)
-	if err != nil {
-		return err
-	}
-
-	sad.unitPrice[month-1], err = addAmount(sad.unitPrice[month-1], dividend.unitPrice, targetCurrencyCode, rateManager)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type TotalDividendStatistics struct {
-	dividend    AnnualDividend
-	totalGrowth float64
-}
-
-type SecurityDividendStatistics struct {
-	assetType  string
-	ticker     string
-	name       string
-	statistics map[int]struct {
-		dividend        SecurityAnnualDividend
-		totalGrowth     float64
-		unitPriceGrowth float64
-	}
-}
-
-func (sds *SecurityDividendStatistics) getStatisticsOfYear(year int) (struct {
-	dividend        SecurityAnnualDividend
-	totalGrowth     float64
-	unitPriceGrowth float64
-}, bool) {
-	statistics, exists := sds.statistics[year]
-
-	if exists {
-		return statistics, true
-	} else {
-		return struct {
-			dividend        SecurityAnnualDividend
-			totalGrowth     float64
-			unitPriceGrowth float64
-		}{}, false
-	}
-
-}
-
-func (sds *SecurityDividendStatistics) addDividend(dividend *Dividend, targetCurrencyCode string, rateManager *RateManager) error {
-	year := dividend.date.Year()
-
-	sad, _ := sds.getStatisticsOfYear(year)
-
-	err := sad.dividend.addDividend(dividend, targetCurrencyCode, rateManager)
-	if err != nil {
-		return err
-	}
-
-	if prevYearStatistics, exists := sds.getStatisticsOfYear(year - 1); exists {
-		totalGrowth, err := calcAnnualDividendGrowth(&sad.dividend.total, &prevYearStatistics.dividend.total, rateManager)
-		if err != nil {
-			return err
-		}
-
-		unitPriceGrowth, err := calcAnnualDividendGrowth(&sad.dividend.unitPrice, &prevYearStatistics.dividend.unitPrice, rateManager)
-		if err != nil {
-			return err
-		}
-
-		sad.totalGrowth = totalGrowth
-		sad.unitPriceGrowth = unitPriceGrowth
-	}
-
-	sds.statistics[year] = sad
-
-	if nextYearStatistics, exists := sds.getStatisticsOfYear(year + 1); exists {
-		totalGrowth, err := calcAnnualDividendGrowth(&nextYearStatistics.dividend.total, &sad.dividend.total, rateManager)
-		if err != nil {
-			return err
-		}
-
-		unitPriceGrowth, err := calcAnnualDividendGrowth(&nextYearStatistics.dividend.unitPrice, &sad.dividend.unitPrice, rateManager)
-		if err != nil {
-			return err
-		}
-
-		nextYearStatistics.totalGrowth = totalGrowth
-		nextYearStatistics.unitPriceGrowth = unitPriceGrowth
-
-		sds.statistics[year+1] = nextYearStatistics
-	}
-
-	return nil
-}
-
-type DividendStatistics struct {
-	total    map[int]TotalDividendStatistics
-	security map[string]SecurityDividendStatistics
-}
-
-func newDividendStatistics() DividendStatistics {
-	return DividendStatistics{
-		total:    make(map[int]TotalDividendStatistics),
-		security: make(map[string]SecurityDividendStatistics),
-	}
-}
-
-func (ds *DividendStatistics) getSecuritydividenStatisticsOfSecurity(assetType, ticker, name string) SecurityDividendStatistics {
-	identifier := strings.Join([]string{assetType, ticker, name}, " ")
-
-	sds, exists := ds.security[identifier]
-	if exists {
-		return sds
-	} else {
-		return SecurityDividendStatistics{
-			assetType: assetType,
-			ticker:    ticker,
-			name:      name,
-			statistics: make(map[int]struct {
-				dividend        SecurityAnnualDividend
-				totalGrowth     float64
-				unitPriceGrowth float64
-			}),
+	for _, amount := range ad {
+		if !amount.IsZero() {
+			count++
 		}
 	}
-}
 
-func (ds *DividendStatistics) addDividend(dividend *Dividend, targetCurrencyCode string, rateManager *RateManager) error {
-	err := ds.addDividendToTotal(dividend, targetCurrencyCode, rateManager)
+	if count == 0 {
+		return ad.calcTotal()
+	}
+
+	total, err := ad.calcTotal()
 	if err != nil {
-		return err
+		return currency.Amount{}, err
 	}
 
-	err = ds.addDividendToSecurity(dividend, targetCurrencyCode, rateManager)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ds *DividendStatistics) addDividendToTotal(dividend *Dividend, targetCurrencyCode string, rateManager *RateManager) error {
-	year := dividend.date.Year()
-
-	totalDividendStatistics := ds.total[year]
-
-	month := dividend.date.Month()
-
-	newAmount, err := addAmount(totalDividendStatistics.dividend[month-1], dividend.total, targetCurrencyCode, rateManager)
-	if err != nil {
-		return nil
-	}
-
-	totalDividendStatistics.dividend[month-1] = newAmount
-	totalDividendStatistics.totalGrowth = 1
-
-	prevYearStat, exists := ds.total[year-1]
-
-	if exists {
-		growth, err := calcAnnualDividendGrowth(&totalDividendStatistics.dividend, &prevYearStat.dividend, rateManager)
-		if err != nil {
-			return err
-		}
-
-		totalDividendStatistics.totalGrowth = growth
-	}
-
-	ds.total[year] = totalDividendStatistics
-
-	return nil
-}
-
-func (ds *DividendStatistics) addDividendToSecurity(dividend *Dividend, targetCurrencyCode string, rateManager *RateManager) error {
-	identifier := dividend.identifier()
-
-	// TODO
-	securityDividendStatistics := ds.getSecuritydividenStatisticsOfSecurity(dividend.assetType, dividend.ticker, dividend.name)
-
-	err := securityDividendStatistics.addDividend(dividend, targetCurrencyCode, rateManager)
-	if err != nil {
-		return err
-	}
-
-	ds.security[identifier] = securityDividendStatistics
-
-	return nil
+	return total.Div(strconv.FormatInt(int64(count), 10))
 }
