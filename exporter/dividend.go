@@ -3,7 +3,6 @@ package main
 import (
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
@@ -34,9 +33,7 @@ func ConstructDividendHistory(protoDividendHistoryResponse *proto.ListDividendHi
 type Dividend struct {
 	date             time.Time
 	account          string
-	assetType        string
-	ticker           string
-	name             string
+	security         Security
 	count            float64
 	unitPrice        currency.Amount
 	totalBeforeTaxed currency.Amount
@@ -74,19 +71,13 @@ func newDividend(dividendHistory *proto.DividendHistory) (Dividend, error) {
 
 	return Dividend{date: date,
 		account:          dividendHistory.GetAccount(),
-		assetType:        dividendHistory.GetType(),
-		ticker:           dividendHistory.GetTicker(),
-		name:             dividendHistory.GetName(),
+		security:         newSecurity(dividendHistory.GetType(), dividendHistory.GetTicker(), dividendHistory.GetName()),
 		count:            dividendHistory.GetCount(),
 		unitPrice:        unitPrice,
 		totalBeforeTaxed: totalBeforeTaxed,
 		totalTaxes:       totalTaxes,
 		total:            total,
 	}, nil
-}
-
-func (d *Dividend) identifier() string {
-	return strings.Join([]string{d.assetType, d.ticker, d.name}, " ")
 }
 
 type DividendReportAnnual struct {
@@ -140,9 +131,7 @@ func (dh *DividendHistory) constructDividendReport(targetCurrencyCode string, ra
 
 		dividendReportAnnual.total[monthIndex] = annualTotal
 
-		// TODO
-		security := newSecurity(dividend.assetType, dividend.ticker, dividend.name)
-		securityDividendReportAnnual := dividendReportAnnual.security[security]
+		securityDividendReportAnnual := dividendReportAnnual.security[dividend.security]
 
 		securityAnnualTotal, err := addAmount(dividend.total, securityDividendReportAnnual.total[monthIndex], targetCurrencyCode, rateManager)
 		if err != nil {
@@ -162,7 +151,7 @@ func (dh *DividendHistory) constructDividendReport(targetCurrencyCode string, ra
 		}
 		securityDividendReportAnnual.averageUnitPrice = securityAnnualAverageUnitPrice
 
-		dividendReportAnnual.security[security] = securityDividendReportAnnual
+		dividendReportAnnual.security[dividend.security] = securityDividendReportAnnual
 		dividendReport.actual[year] = dividendReportAnnual
 	}
 

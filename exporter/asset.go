@@ -66,9 +66,7 @@ func (assetSummary *AssetSummary) PerformanceExcludingCurrencyImpact(rateManager
 }
 
 type IndividualAsset struct {
-	assetType               string
-	ticker                  string
-	name                    string
+	security                Security
 	account                 string
 	count                   float64
 	averageAcquisitionPrice currency.Amount
@@ -93,9 +91,7 @@ func NewIndividualAsset(asset *proto.Asset) (*IndividualAsset, error) {
 	}
 
 	return &IndividualAsset{
-		assetType:               asset.GetType(),
-		ticker:                  asset.GetTicker(),
-		name:                    asset.GetName(),
+		security:                newSecurity(asset.GetType(), asset.GetTicker(), asset.GetName()),
 		account:                 asset.GetAccount(),
 		count:                   asset.GetCount(),
 		averageAcquisitionPrice: averageAcquisitionPrice,
