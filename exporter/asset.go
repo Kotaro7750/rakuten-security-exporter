@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
@@ -15,6 +16,11 @@ type Security struct {
 
 func newSecurity(assetType, ticker, name string) Security {
 	return Security{assetType, ticker, name}
+}
+
+func (s *Security) identifier() string {
+  // Name must not be used because it varies per file
+	return fmt.Sprintf("%s %s", s.assetType, s.ticker)
 }
 
 type Asset []*IndividualAsset
@@ -54,6 +60,16 @@ func (asset *Asset) Summarize(targetCurrencyCode string, rateManager *RateManage
 	}
 
 	return &AssetSummary{totalAcquisitionPrice, totalPrice}, nil
+}
+
+func (asset *Asset) construceAssetCount() map[Security]float64 {
+	assetCount := make(map[Security]float64, 0)
+
+	for _, individualAsset := range *asset {
+		assetCount[individualAsset.security] = individualAsset.count
+	}
+
+	return assetCount
 }
 
 type AssetSummary struct {

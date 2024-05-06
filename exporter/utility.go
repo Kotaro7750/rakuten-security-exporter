@@ -74,3 +74,39 @@ func diffMonth(startDate time.Time, endDate time.Time) int64 {
 		return int64((diffYear-1)*12) + int64(12-startDate.Month()+endDate.Month()+1)
 	}
 }
+
+func monthsOfPastYear(containJustAnYearAgo bool) []struct {
+	year  int
+	month int
+} {
+	now := time.Now()
+	thisYear := now.Year()
+	thisMonth := now.Month()
+
+	ret := make([]struct {
+		year  int
+		month int
+	}, 0)
+
+	iMax := 12
+	if containJustAnYearAgo {
+		iMax = 13
+	}
+
+	for i := 0; i < iMax; i++ {
+		startOffset := 0
+		if containJustAnYearAgo {
+			startOffset = -1
+		}
+
+		year := (thisYear*12 + int(thisMonth) - 12 + i + startOffset) / 12
+		month := (thisYear*12+int(thisMonth)-12+i+startOffset)%12 + 1
+
+		ret = append(ret, struct {
+			year  int
+			month int
+		}{year, month})
+	}
+
+	return ret
+}

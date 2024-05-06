@@ -140,6 +140,17 @@ func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport,
 		log.Fatalf("error %v", err)
 	}
 
+	dr, err := threadSafeInvestmentReport.dividendHistory.constructDividendReport(threadSafeInvestmentReport.asset.construceAssetCount(), "USD", &threadSafeInvestmentReport.rateManager)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	for security, dm := range dr.estimate.security {
+		for i, d := range dm.total {
+			log.Printf("%s %d %s", security, i+1, d.String())
+		}
+	}
+
 	metrics.totalReturn.Set(performance.TotalReturn.total)
 	metrics.totalReturnAnnual.Set(performance.TotalReturn.annual)
 	metrics.performanceExcludingCurrencyImpact.Set(performance.PerformanceExcludingCurrencyImpact.total)
