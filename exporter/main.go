@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -20,6 +21,8 @@ type Metrics struct {
 	totalReturnAnnual                        prometheus.Gauge
 	performanceExcludingCurrencyImpact       prometheus.Gauge
 	performanceExcludingCurrencyImpactAnnual prometheus.Gauge
+	dividendEstimate                         prometheus.GaugeVec
+	dividendEstimateTotal                    prometheus.GaugeVec
 }
 
 var registry prometheus.Registry
@@ -45,6 +48,14 @@ func main() {
 			Namespace: "rakutensecurity",
 			Name:      "performance_excluding_currency_impact_annual",
 		}),
+		dividendEstimate: *prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "dividend_estimate",
+		}, []string{"security", "month"}),
+		dividendEstimateTotal: *prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "dividend_estimate_total",
+		}, []string{"month"}),
 	}
 
 	err := scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
@@ -68,6 +79,16 @@ func main() {
 	}
 
 	err = registry.Register(metrics.performanceExcludingCurrencyImpactAnnual)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.dividendEstimate)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.dividendEstimateTotal)
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
@@ -145,10 +166,22 @@ func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport,
 		log.Fatalf("error %v", err)
 	}
 
-	for security, dm := range dr.estimate.security {
-		for i, d := range dm.total {
-			log.Printf("%s %d %s", security, i+1, d.String())
+	for security, securityDividendEstimation := range dr.estimate.security {
+		for monthIndex, dividendAmount := range securityDividendEstimation.total {
+			dividend, err := strconv.ParseFloat(dividendAmount.Number(), 64)
+			if err != nil {
+				log.Fatalf("error %v", err)
+			}
+			metrics.dividendEstimate.With(prometheus.Labels{"month": strconv.FormatInt(int64(monthIndex+1), 10), "security": security}).Set(dividend)
 		}
+	}
+
+	for monthIndex, dividendAmount := range dr.estimate.total {
+		dividend, err := strconv.ParseFloat(dividendAmount.Number(), 64)
+		if err != nil {
+			log.Fatalf("error %v", err)
+		}
+		metrics.dividendEstimateTotal.With(prometheus.Labels{"month": strconv.FormatInt(int64(monthIndex+1), 10)}).Set(dividend)
 	}
 
 	metrics.totalReturn.Set(performance.TotalReturn.total)
