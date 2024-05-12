@@ -5,6 +5,7 @@ go 1.21.3
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bojanz/currency v1.2.3 // indirect
+	github.com/caarlos0/env/v11 v11.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect

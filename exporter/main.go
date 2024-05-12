@@ -9,12 +9,19 @@ import (
 	"time"
 
 	"github.com/Kotaro7750/rakuten-security-exporter/proto"
+	"github.com/caarlos0/env/v11"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/robfig/cron"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+type Config struct {
+	ScraperEndpoint string `env:"SCRAPER_ENDPOINT" envDefault:"localhost:50051"`
+	ListenEndpoint  string `env:"LISTEN_ENDPOINT" envDefault:":8080"`
+	TargetCurrency  string `env:"TARGET_CURRENCY" envDefault:"JPY"`
+}
 
 type Metrics struct {
 	totalReturn                              prometheus.Gauge
@@ -28,6 +35,12 @@ type Metrics struct {
 var registry prometheus.Registry
 
 func main() {
+	config := Config{}
+	err := env.Parse(&config)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
 	threadSafeInvestmentReport := ThreadSafeInvestmentReport{}
 
 	registry = *prometheus.NewRegistry()
@@ -58,7 +71,7 @@ func main() {
 		}, []string{"month"}),
 	}
 
-	err := scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
+	err = scrapeAndSetMetrics(&config, &threadSafeInvestmentReport, &metrics)
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
@@ -95,7 +108,7 @@ func main() {
 
 	c := cron.New()
 	err = c.AddFunc("*/30 * * * * *", func() {
-		err = scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
+		err = scrapeAndSetMetrics(&config, &threadSafeInvestmentReport, &metrics)
 		if err != nil {
 			log.Fatalf("error %v", err)
 		}
@@ -108,15 +121,15 @@ func main() {
 	c.Start()
 
 	http.Handle("/metrics", promhttp.HandlerFor(&registry, promhttp.HandlerOpts{Registry: &registry}))
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(config.ListenEndpoint, nil); err != nil {
 		log.Fatalf("error %v", err)
 	}
 }
 
-func scrape() (InvestmentReport, error) {
+func scrape(scraperEndpoint string) (InvestmentReport, error) {
 	var opt []grpc.DialOption = []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
-	conn, err := grpc.Dial("localhost:50051", opt...)
+	conn, err := grpc.Dial(scraperEndpoint, opt...)
 	if err != nil {
 		return InvestmentReport{}, err
 	}
@@ -145,8 +158,8 @@ func scrape() (InvestmentReport, error) {
 	return ConstructInvestmentReport(total_asset, withdrawal_history, dividend_history)
 }
 
-func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport, metrics *Metrics) error {
-	investmentReport, err := scrape()
+func scrapeAndSetMetrics(config *Config, threadSafeInvestmentReport *ThreadSafeInvestmentReport, metrics *Metrics) error {
+	investmentReport, err := scrape(config.ScraperEndpoint)
 	if err != nil {
 		return err
 	}
@@ -156,12 +169,12 @@ func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport,
 
 	threadSafeInvestmentReport.InvestmentReport = investmentReport
 
-	performance, err := threadSafeInvestmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), "USD")
+	performance, err := threadSafeInvestmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), config.TargetCurrency)
 	if err != nil {
 		return err
 	}
 
-	dr, err := threadSafeInvestmentReport.dividendHistory.constructDividendReport(threadSafeInvestmentReport.asset.construceAssetCount(), "USD", &threadSafeInvestmentReport.rateManager)
+	dr, err := threadSafeInvestmentReport.dividendHistory.constructDividendReport(threadSafeInvestmentReport.asset.construceAssetCount(), config.TargetCurrency, &threadSafeInvestmentReport.rateManager)
 	if err != nil {
 		return err
 	}
