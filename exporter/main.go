@@ -95,7 +95,7 @@ func main() {
 
 	c := cron.New()
 	err = c.AddFunc("*/30 * * * * *", func() {
-		scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
+		err = scrapeAndSetMetrics(&threadSafeInvestmentReport, &metrics)
 		if err != nil {
 			log.Fatalf("error %v", err)
 		}
@@ -148,7 +148,7 @@ func scrape() (InvestmentReport, error) {
 func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport, metrics *Metrics) error {
 	investmentReport, err := scrape()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	threadSafeInvestmentReport.mu.Lock()
@@ -158,19 +158,19 @@ func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport,
 
 	performance, err := threadSafeInvestmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), "USD")
 	if err != nil {
-		log.Fatalf("error %v", err)
+		return err
 	}
 
 	dr, err := threadSafeInvestmentReport.dividendHistory.constructDividendReport(threadSafeInvestmentReport.asset.construceAssetCount(), "USD", &threadSafeInvestmentReport.rateManager)
 	if err != nil {
-		log.Fatalf("error %v", err)
+		return err
 	}
 
 	for security, securityDividendEstimation := range dr.estimate.security {
 		for monthIndex, dividendAmount := range securityDividendEstimation.total {
 			dividend, err := strconv.ParseFloat(dividendAmount.Number(), 64)
 			if err != nil {
-				log.Fatalf("error %v", err)
+				return err
 			}
 			metrics.dividendEstimate.With(prometheus.Labels{"month": strconv.FormatInt(int64(monthIndex+1), 10), "security": security}).Set(dividend)
 		}
@@ -179,7 +179,7 @@ func scrapeAndSetMetrics(threadSafeInvestmentReport *ThreadSafeInvestmentReport,
 	for monthIndex, dividendAmount := range dr.estimate.total {
 		dividend, err := strconv.ParseFloat(dividendAmount.Number(), 64)
 		if err != nil {
-			log.Fatalf("error %v", err)
+			return err
 		}
 		metrics.dividendEstimateTotal.With(prometheus.Labels{"month": strconv.FormatInt(int64(monthIndex+1), 10)}).Set(dividend)
 	}
