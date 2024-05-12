@@ -26,7 +26,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: 7750koutarou/rakuten-security-scraper
-          tags: type=ref
+          tags: type=ref,event=tag
 
       - name: Build and push Docker image
         id: build-and-push
