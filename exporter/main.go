@@ -18,9 +18,10 @@ import (
 )
 
 type Config struct {
-	ScraperEndpoint string `env:"SCRAPER_ENDPOINT" envDefault:"localhost:50051"`
-	ListenEndpoint  string `env:"LISTEN_ENDPOINT" envDefault:":8080"`
-	TargetCurrency  string `env:"TARGET_CURRENCY" envDefault:"JPY"`
+	ScraperEndpoint     string `env:"SCRAPER_ENDPOINT" envDefault:"localhost:50051"`
+	ListenEndpoint      string `env:"LISTEN_ENDPOINT" envDefault:":8080"`
+	TargetCurrency      string `env:"TARGET_CURRENCY" envDefault:"JPY"`
+	InvestmentStartDate string `env:"INVESTMENT_START_DATE"`
 }
 
 type Metrics struct {
@@ -38,6 +39,10 @@ func main() {
 	config := Config{}
 	err := env.Parse(&config)
 	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	if _, err := time.Parse(time.DateOnly, config.InvestmentStartDate); err != nil {
 		log.Fatalf("error %v", err)
 	}
 
@@ -169,7 +174,9 @@ func scrapeAndSetMetrics(config *Config, threadSafeInvestmentReport *ThreadSafeI
 
 	threadSafeInvestmentReport.InvestmentReport = investmentReport
 
-	performance, err := threadSafeInvestmentReport.ConstructPerformanceReport(time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local), config.TargetCurrency)
+	investmentStartDate, _ := time.Parse(time.DateOnly, config.InvestmentStartDate)
+
+	performance, err := threadSafeInvestmentReport.ConstructPerformanceReport(investmentStartDate, config.TargetCurrency)
 	if err != nil {
 		return err
 	}
