@@ -44,6 +44,7 @@ message TotalAssetRequest {};
 
 message TotalAssetResponse{
   repeated Asset asset = 1;
+  repeated CurrenyRateToJPY currency_rate = 2;
 }
 
 message Asset {
@@ -56,4 +57,9 @@ message Asset {
   double current_unit_price = 7;
   double current_price = 8;
   double current_price_yen = 9;
+}
+
+message CurrenyRateToJPY {
+  string currencyCode = 1;
+  double rate = 2;
 }

@@ -64,12 +64,13 @@ def parse_withdrawal_history(download_dir):
 
 def parse_asset(download_dir):
     with open(pathlib.Path(download_dir, 'asset.csv'), encoding='sjis') as f:
-        asset_detail = split_asset_into_sections([row for row in csv.reader(f)])[1]
+        sections = split_asset_into_sections([row for row in csv.reader(f)])
 
-        jsonArray = []
+        asset_detail = sections[1]
+        asset_array = []
 
         for i in range(2, len(asset_detail)):
-            jsonArray.append({
+            asset_array.append({
                 'type': asset_detail[i][0],
                 'ticker': asset_detail[i][1],
                 'name': asset_detail[i][2],
@@ -81,7 +82,19 @@ def parse_asset(download_dir):
                 'current_price': float(canonicalize_price(asset_detail[i][15])),
             })
 
-        return jsonArray
+        currency_rate = sections[2]
+        currency_rate_array = []
+
+        for i in range(1, len(currency_rate)):
+            rate = currency_rate[i][1]
+            currency_code = currency_rate[i][2].split('/')[1]
+
+            currency_rate_array.append({
+                "currency_code": currency_code,
+                "rate": float(rate)
+            })
+
+        return asset_array, currency_rate_array
 
 
 # 「資産合計」「保有資産詳細」「参考為替レート」の3つに分解する

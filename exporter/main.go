@@ -247,7 +247,7 @@ func ConstructInvestmentReport(
 	dividendHistoryResponse *proto.ListDividendHistoriesResponse,
 ) (InvestmentReport, error) {
 
-	asset, err := constructAsset(assetResponse)
+	asset, rateManager, err := constructAsset(assetResponse)
 	if err != nil {
 		return InvestmentReport{}, err
 	}
@@ -258,13 +258,6 @@ func ConstructInvestmentReport(
 	}
 
 	dividendHistory, err := ConstructDividendHistory(dividendHistoryResponse)
-	if err != nil {
-		return InvestmentReport{}, err
-	}
-
-	rateManager := NewRateManager()
-
-	err = rateManager.RegisterRate("USD", "JPY", 156.45)
 	if err != nil {
 		return InvestmentReport{}, err
 	}

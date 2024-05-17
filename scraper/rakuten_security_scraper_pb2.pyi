@@ -66,10 +66,12 @@ class TotalAssetRequest(_message.Message):
     def __init__(self) -> None: ...
 
 class TotalAssetResponse(_message.Message):
-    __slots__ = ("asset",)
+    __slots__ = ("asset", "currency_rate")
     ASSET_FIELD_NUMBER: _ClassVar[int]
+    CURRENCY_RATE_FIELD_NUMBER: _ClassVar[int]
     asset: _containers.RepeatedCompositeFieldContainer[Asset]
-    def __init__(self, asset: _Optional[_Iterable[_Union[Asset, _Mapping]]] = ...) -> None: ...
+    currency_rate: _containers.RepeatedCompositeFieldContainer[CurrenyRateToJPY]
+    def __init__(self, asset: _Optional[_Iterable[_Union[Asset, _Mapping]]] = ..., currency_rate: _Optional[_Iterable[_Union[CurrenyRateToJPY, _Mapping]]] = ...) -> None: ...
 
 class Asset(_message.Message):
     __slots__ = ("type", "ticker", "name", "account", "count", "average_acquisition_price", "current_unit_price", "current_price", "current_price_yen")
@@ -92,3 +94,11 @@ class Asset(_message.Message):
     current_price: float
     current_price_yen: float
     def __init__(self, type: _Optional[str] = ..., ticker: _Optional[str] = ..., name: _Optional[str] = ..., account: _Optional[str] = ..., count: _Optional[float] = ..., average_acquisition_price: _Optional[float] = ..., current_unit_price: _Optional[float] = ..., current_price: _Optional[float] = ..., current_price_yen: _Optional[float] = ...) -> None: ...
+
+class CurrenyRateToJPY(_message.Message):
+    __slots__ = ("currencyCode", "rate")
+    CURRENCYCODE_FIELD_NUMBER: _ClassVar[int]
+    RATE_FIELD_NUMBER: _ClassVar[int]
+    currencyCode: str
+    rate: float
+    def __init__(self, currencyCode: _Optional[str] = ..., rate: _Optional[float] = ...) -> None: ...

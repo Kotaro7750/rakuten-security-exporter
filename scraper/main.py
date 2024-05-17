@@ -44,10 +44,11 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
         return response
 
     def TotalAssets(self, request, context):
-        asset = self.cache.GetTotalAsset()
+        asset, currency_rate = self.cache.GetTotalAsset()
 
         response = rakuten_security_scraper_pb2.TotalAssetResponse()
         response.asset.extend([self._convertToAsset(e) for e in asset])
+        response.currency_rate.extend([self._convertToCurrencyRate(e) for e in currency_rate])
 
         return response
 
@@ -84,6 +85,12 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
                 current_unit_price=elem["current_unit_price"],
                 current_price=elem["current_price"],
                 current_price_yen=elem["current_price_yen"]
+        )
+
+    def _convertToCurrencyRate(self, elem):
+        return rakuten_security_scraper_pb2.CurrenyRateToJPY(
+                currencyCode=elem["currency_code"],
+                rate=elem["rate"]
         )
 
 

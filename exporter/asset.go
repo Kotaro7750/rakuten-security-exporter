@@ -19,25 +19,34 @@ func newSecurity(assetType, ticker, name string) Security {
 }
 
 func (s *Security) identifier() string {
-  // Name must not be used because it varies per file
+	// Name must not be used because it varies per file
 	return fmt.Sprintf("%s %s", s.assetType, s.ticker)
 }
 
 type Asset []*IndividualAsset
 
-func constructAsset(assets *proto.TotalAssetResponse) (Asset, error) {
+func constructAsset(assets *proto.TotalAssetResponse) (Asset, RateManager, error) {
 	constructedAssets := make(Asset, 0)
 
 	for _, asset := range assets.GetAsset() {
 		convertedAsset, err := NewIndividualAsset(asset)
 		if err != nil {
-			return nil, err
+			return nil, RateManager{}, err
 		}
 
 		constructedAssets = append(constructedAssets, convertedAsset)
 	}
 
-	return constructedAssets, nil
+	rateManager := NewRateManager()
+
+	for _, currencyRateToJPY := range assets.GetCurrencyRate() {
+		err := rateManager.RegisterRate(currencyRateToJPY.GetCurrencyCode(), "JPY", currencyRateToJPY.GetRate())
+		if err != nil {
+			return nil, RateManager{}, err
+		}
+	}
+
+	return constructedAssets, rateManager, nil
 }
 
 func (asset *Asset) Summarize(targetCurrencyCode string, rateManager *RateManager) (*AssetSummary, error) {
