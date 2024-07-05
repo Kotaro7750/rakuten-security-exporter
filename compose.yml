@@ -1,0 +1,18 @@
+services:
+  exporter:
+    build: ./exporter
+    environment:
+      INVESTMENT_START_DATE: '2020-01-01'
+      SCRAPER_ENDPOINT: "scraper:50051"
+    depends_on:
+      scraper:
+        condition: service_started
+    ports:
+      - 8080:8080
+    restart: on-failure
+
+  scraper:
+    build: ./scraper
+    env_file: "./scraper-env"
+    environment:
+      DOWNLOAD_DIR: '/csv'
