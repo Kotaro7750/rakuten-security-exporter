@@ -25,6 +25,9 @@ type Config struct {
 }
 
 type Metrics struct {
+	totalAcquisitionPrice                    prometheus.Gauge
+	totalPrice                               prometheus.Gauge
+	totalInvestmentAmount                    prometheus.Gauge
 	totalReturn                              prometheus.Gauge
 	totalReturnAnnual                        prometheus.Gauge
 	performanceExcludingCurrencyImpact       prometheus.Gauge
@@ -50,6 +53,18 @@ func main() {
 
 	registry = *prometheus.NewRegistry()
 	metrics := Metrics{
+		totalAcquisitionPrice: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "total_acquisition_price",
+		}),
+		totalPrice: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "total_price",
+		}),
+		totalInvestmentAmount: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "rakutensecurity",
+			Name:      "total_investment_amount",
+		}),
 		totalReturn: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: "rakutensecurity",
 			Name:      "total_return",
@@ -77,6 +92,21 @@ func main() {
 	}
 
 	err = scrapeAndSetMetrics(&config, &threadSafeInvestmentReport, &metrics)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.totalAcquisitionPrice)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.totalPrice)
+	if err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	err = registry.Register(metrics.totalInvestmentAmount)
 	if err != nil {
 		log.Fatalf("error %v", err)
 	}
@@ -205,6 +235,9 @@ func scrapeAndSetMetrics(config *Config, threadSafeInvestmentReport *ThreadSafeI
 	}
 
 	metrics.totalReturn.Set(performance.TotalReturn.total)
+	metrics.totalPrice.Set(performance.TotalPrice)
+	metrics.totalAcquisitionPrice.Set(performance.TotalAcquisitionPrice)
+	metrics.totalInvestmentAmount.Set(performance.TotalInvestmentAmount)
 	metrics.totalReturnAnnual.Set(performance.TotalReturn.annual)
 	metrics.performanceExcludingCurrencyImpact.Set(performance.PerformanceExcludingCurrencyImpact.total)
 	metrics.performanceExcludingCurrencyImpactAnnual.Set(performance.PerformanceExcludingCurrencyImpact.annual)
@@ -225,6 +258,10 @@ type InvestmentReport struct {
 }
 
 type PerformanceReport struct {
+	CurrenryCode                       string
+	TotalInvestmentAmount              float64
+	TotalPrice                         float64
+	TotalAcquisitionPrice              float64
 	PerformanceExcludingCurrencyImpact Return
 	TotalReturn                        Return
 }
@@ -271,6 +308,16 @@ func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time, targ
 		return PerformanceReport{}, err
 	}
 
+	totalAcquisitionPrice, err := strconv.ParseFloat(assetSummary.totalAcquisitionPrice.Number(), 64)
+	if err != nil {
+		return PerformanceReport{}, err
+	}
+
+	totalPrice, err := strconv.ParseFloat(assetSummary.totalPrice.Number(), 64)
+	if err != nil {
+		return PerformanceReport{}, err
+	}
+
 	performanceExcludingCurrencyImpact, err := assetSummary.PerformanceExcludingCurrencyImpact(&ir.rateManager)
 	if err != nil {
 		return PerformanceReport{}, err
@@ -281,13 +328,22 @@ func (ir *InvestmentReport) ConstructPerformanceReport(startDate time.Time, targ
 		return PerformanceReport{}, err
 	}
 
+	totalInvestmentAmountFloat, err := strconv.ParseFloat(totalInvestmentAmount.Number(), 64)
+	if err != nil {
+		return PerformanceReport{}, err
+	}
+
 	totalReturn, err := amountRatio(assetSummary.totalPrice, totalInvestmentAmount, &ir.rateManager)
 	if err != nil {
 		return PerformanceReport{}, err
 	}
 
 	return PerformanceReport{
+		CurrenryCode:                       targetCurrencyCode,
 		PerformanceExcludingCurrencyImpact: NewReturn(performanceExcludingCurrencyImpact, startDate),
 		TotalReturn:                        NewReturn(totalReturn, startDate),
+		TotalInvestmentAmount:              totalInvestmentAmountFloat,
+		TotalPrice:                         totalPrice,
+		TotalAcquisitionPrice:              totalAcquisitionPrice,
 	}, nil
 }
