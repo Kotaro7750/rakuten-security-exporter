@@ -75,7 +75,7 @@ def parse_asset(download_dir):
                 'ticker': asset_detail[i][1],
                 'name': asset_detail[i][2],
                 'account': asset_detail[i][3],
-                'count': float(asset_detail[i][4]),
+                'count': float(canonicalize_price(asset_detail[i][4])),
                 'average_acquisition_price': float(canonicalize_price(asset_detail[i][6])),
                 'current_unit_price': float(canonicalize_price(asset_detail[i][8])),
                 'current_price_yen': float(canonicalize_price(asset_detail[i][14])),
