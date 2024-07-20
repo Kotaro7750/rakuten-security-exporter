@@ -70,16 +70,42 @@ def parse_asset(download_dir):
         asset_array = []
 
         for i in range(2, len(asset_detail)):
+            asset_type = asset_detail[i][0]
+
+            currency = asset_detail[i][7]
+            # 外貨預り金の場合「円/通貨名」という記載になるため
+            if currency == "円" or asset_type == "外貨預り金":
+                currency = 'JPY'
+
+            count = float(canonicalize_price(asset_detail[i][4]))
+            average_acquisition_price = float(
+                canonicalize_price(asset_detail[i][6]))
+            current_unit_price = float(canonicalize_price(asset_detail[i][8]))
+            current_price_yen = float(canonicalize_price(asset_detail[i][14]))
+            # 円建て資産の場合外貨建ての時価評価額は使えない
+            current_price = float(canonicalize_price(
+                asset_detail[i][14 if currency == 'JPY' else 15]))
+
+            if asset_type == '投資信託':
+                # 投資信託では平均取得額・現在値が1口あたりの金額ではなく基準価額となっているため1口あたりの金額に修正
+                average_acquisition_price = current_price / current_unit_price * average_acquisition_price / count
+                current_unit_price = current_price / count
+            elif asset_type == '外貨預り金':
+                # 外貨預り金は平均取得金額が出ていないため現在の金額で代用する
+                # 正確に計算しようにも、外貨建て資産を売ったときなど計算不可能
+                average_acquisition_price = current_unit_price
+
             asset_array.append({
-                'type': asset_detail[i][0],
+                'type': asset_type,
                 'ticker': asset_detail[i][1],
                 'name': asset_detail[i][2],
+                'currency': currency,
                 'account': asset_detail[i][3],
-                'count': float(canonicalize_price(asset_detail[i][4])),
-                'average_acquisition_price': float(canonicalize_price(asset_detail[i][6])),
-                'current_unit_price': float(canonicalize_price(asset_detail[i][8])),
-                'current_price_yen': float(canonicalize_price(asset_detail[i][14])),
-                'current_price': float(canonicalize_price(asset_detail[i][15])),
+                'count': count,
+                'average_acquisition_price': average_acquisition_price,
+                'current_unit_price': current_unit_price,
+                'current_price_yen': current_price_yen,
+                'current_price': current_price
             })
 
         currency_rate = sections[2]

@@ -79,6 +79,7 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
                 type=elem["type"],
                 ticker=elem["ticker"],
                 name=elem["name"],
+                currency=elem["currency"],
                 account=elem["account"],
                 count=elem["count"],
                 average_acquisition_price=elem["average_acquisition_price"],

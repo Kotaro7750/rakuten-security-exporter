@@ -74,7 +74,7 @@ class TotalAssetResponse(_message.Message):
     def __init__(self, asset: _Optional[_Iterable[_Union[Asset, _Mapping]]] = ..., currency_rate: _Optional[_Iterable[_Union[CurrenyRateToJPY, _Mapping]]] = ...) -> None: ...
 
 class Asset(_message.Message):
-    __slots__ = ("type", "ticker", "name", "account", "count", "average_acquisition_price", "current_unit_price", "current_price", "current_price_yen")
+    __slots__ = ("type", "ticker", "name", "account", "count", "average_acquisition_price", "current_unit_price", "current_price", "current_price_yen", "currency")
     TYPE_FIELD_NUMBER: _ClassVar[int]
     TICKER_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -84,6 +84,7 @@ class Asset(_message.Message):
     CURRENT_UNIT_PRICE_FIELD_NUMBER: _ClassVar[int]
     CURRENT_PRICE_FIELD_NUMBER: _ClassVar[int]
     CURRENT_PRICE_YEN_FIELD_NUMBER: _ClassVar[int]
+    CURRENCY_FIELD_NUMBER: _ClassVar[int]
     type: str
     ticker: str
     name: str
@@ -93,7 +94,8 @@ class Asset(_message.Message):
     current_unit_price: float
     current_price: float
     current_price_yen: float
-    def __init__(self, type: _Optional[str] = ..., ticker: _Optional[str] = ..., name: _Optional[str] = ..., account: _Optional[str] = ..., count: _Optional[float] = ..., average_acquisition_price: _Optional[float] = ..., current_unit_price: _Optional[float] = ..., current_price: _Optional[float] = ..., current_price_yen: _Optional[float] = ...) -> None: ...
+    currency: str
+    def __init__(self, type: _Optional[str] = ..., ticker: _Optional[str] = ..., name: _Optional[str] = ..., account: _Optional[str] = ..., count: _Optional[float] = ..., average_acquisition_price: _Optional[float] = ..., current_unit_price: _Optional[float] = ..., current_price: _Optional[float] = ..., current_price_yen: _Optional[float] = ..., currency: _Optional[str] = ...) -> None: ...
 
 class CurrenyRateToJPY(_message.Message):
     __slots__ = ("currencyCode", "rate")

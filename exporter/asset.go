@@ -100,17 +100,17 @@ type IndividualAsset struct {
 }
 
 func NewIndividualAsset(asset *proto.Asset) (*IndividualAsset, error) {
-	averageAcquisitionPrice, err := currency.NewAmount(strconv.FormatFloat(asset.GetAverageAcquisitionPrice(), 'f', -1, 64), "USD")
+	averageAcquisitionPrice, err := currency.NewAmount(strconv.FormatFloat(asset.GetAverageAcquisitionPrice(), 'f', -1, 64), asset.GetCurrency())
 	if err != nil {
 		return nil, err
 	}
 
-	currentUnitPrice, err := currency.NewAmount(strconv.FormatFloat(asset.GetCurrentUnitPrice(), 'f', -1, 64), "USD")
+	currentUnitPrice, err := currency.NewAmount(strconv.FormatFloat(asset.GetCurrentUnitPrice(), 'f', -1, 64), asset.GetCurrency())
 	if err != nil {
 		return nil, err
 	}
 
-	currentPrice, err := currency.NewAmount(strconv.FormatFloat(asset.GetCurrentPrice(), 'f', -1, 64), "USD")
+	currentPrice, err := currency.NewAmount(strconv.FormatFloat(asset.GetCurrentPrice(), 'f', -1, 64), asset.GetCurrency())
 	if err != nil {
 		return nil, err
 	}

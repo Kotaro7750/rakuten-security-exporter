@@ -57,6 +57,7 @@ message Asset {
   double current_unit_price = 7;
   double current_price = 8;
   double current_price_yen = 9;
+  string currency = 10;
 }
 
 message CurrenyRateToJPY {
