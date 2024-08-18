@@ -32,7 +32,6 @@ func ConstructDividendHistory(protoDividendHistoryResponse *proto.ListDividendHi
 
 type Dividend struct {
 	date             time.Time
-	account          string
 	security         Security
 	count            float64
 	unitPrice        currency.Amount
@@ -70,8 +69,7 @@ func newDividend(dividendHistory *proto.DividendHistory) (Dividend, error) {
 	}
 
 	return Dividend{date: date,
-		account:          dividendHistory.GetAccount(),
-		security:         newSecurity(dividendHistory.GetType(), dividendHistory.GetTicker(), dividendHistory.GetName()),
+		security:         newSecurity(dividendHistory.GetAccount(), dividendHistory.GetType(), dividendHistory.GetTicker(), dividendHistory.GetName()),
 		count:            dividendHistory.GetCount(),
 		unitPrice:        unitPrice,
 		totalBeforeTaxed: totalBeforeTaxed,

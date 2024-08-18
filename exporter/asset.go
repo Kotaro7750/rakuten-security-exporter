@@ -9,13 +9,14 @@ import (
 )
 
 type Security struct {
+	account   string
 	assetType string
 	ticker    string
 	name      string
 }
 
-func newSecurity(assetType, ticker, name string) Security {
-	return Security{assetType, ticker, name}
+func newSecurity(account, assetType, ticker, name string) Security {
+	return Security{account, assetType, ticker, name}
 }
 
 func (s *Security) identifier() string {
@@ -92,7 +93,6 @@ func (assetSummary *AssetSummary) PerformanceExcludingCurrencyImpact(rateManager
 
 type IndividualAsset struct {
 	security                Security
-	account                 string
 	count                   float64
 	averageAcquisitionPrice currency.Amount
 	currentUnitPrice        currency.Amount
@@ -116,8 +116,7 @@ func NewIndividualAsset(asset *proto.Asset) (*IndividualAsset, error) {
 	}
 
 	return &IndividualAsset{
-		security:                newSecurity(asset.GetType(), asset.GetTicker(), asset.GetName()),
-		account:                 asset.GetAccount(),
+		security:                newSecurity(asset.GetAccount(), asset.GetType(), asset.GetTicker(), asset.GetName()),
 		count:                   asset.GetCount(),
 		averageAcquisitionPrice: averageAcquisitionPrice,
 		currentUnitPrice:        currentUnitPrice,
