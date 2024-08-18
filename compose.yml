@@ -14,5 +14,9 @@ services:
   scraper:
     build: ./scraper
     env_file: "./scraper-env"
+    volumes:
+      - "./scraper/downloaded:/csv"
     environment:
       DOWNLOAD_DIR: '/csv'
+      CACHE_TTL_SECOND: '-1'
+      CACHE_CLEAR_ON_START: 'False'

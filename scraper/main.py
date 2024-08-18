@@ -7,6 +7,7 @@ import sys
 from concurrent import futures
 from logging import getLogger, StreamHandler
 import cache
+from distutils.util import strtobool
 
 
 class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSecurityScraperServicer):
@@ -15,16 +16,17 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
     password = ""
     cache = {}
 
-    def __init__(self, id, password, download_dir):
+    def __init__(self, id, password, download_dir, cache_ttl_second, cache_clear_on_start):
         self.id = id
         self.password = password
 
         self.download_dir = download_dir
-        for f in [f for f in pathlib.Path(self.download_dir).glob("*.csv")]:
-            f.unlink()
+        if cache_clear_on_start:
+            for f in [f for f in pathlib.Path(self.download_dir).glob("*.csv")]:
+                f.unlink()
 
         self.cache = cache.CachedRakutenSecurityScraper(
-            id, password, download_dir, 86400)
+            id, password, download_dir, cache_ttl_second)
 
     def ListWithdrawalHistories(self, request, context):
 
@@ -98,6 +100,9 @@ class RakutenSecurityScraperServicer(rakuten_security_scraper_pb2_grpc.RakutenSe
 id = os.environ['RAKUTEN_SEC_ID']
 password = os.environ['RAKUTEN_SEC_PASSWORD']
 download_dir = os.environ['DOWNLOAD_DIR']
+cache_ttl_second = int(os.getenv('CACHE_TTL_SECOND', '86400'))
+cache_clear_on_start = bool(strtobool(os.getenv('CACHE_CLEAR_ON_START', 'True')))
+
 
 logger = getLogger("rakuten-security-scraper")
 logger.setLevel('INFO')
@@ -105,8 +110,8 @@ stream_handler = StreamHandler(stream=sys.stdout)
 logger.addHandler(stream_handler)
 
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-rakuten_security_scraper_pb2_grpc.add_RakutenSecurityScraperServicer_to_server(
-    RakutenSecurityScraperServicer(id, password, download_dir), server)
+servicer = RakutenSecurityScraperServicer(id, password, download_dir, cache_ttl_second, cache_clear_on_start)
+rakuten_security_scraper_pb2_grpc.add_RakutenSecurityScraperServicer_to_server(servicer, server)
 
 server.add_insecure_port("0.0.0.0:50051")
 server.start()

@@ -13,6 +13,7 @@ class CachedRakutenSecurityScraper():
     password = ""
     ttl_second = 86400  # 1 day
 
+    # When ttl_second is minus, cache never expires
     def __init__(self, id, password, download_dir, ttl_second):
         self.id = id
         self.password = password
@@ -24,6 +25,9 @@ class CachedRakutenSecurityScraper():
         if not pathlib.Path(path).exists():
             logger.info("%s does not exist", path)
             return False
+
+        if self.ttl_second < 0:
+            return True
 
         timestamp = pathlib.Path(path).stat().st_mtime
 
