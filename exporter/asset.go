@@ -24,6 +24,11 @@ func (s *Security) identifier() string {
 	return fmt.Sprintf("%s %s", s.assetType, s.ticker)
 }
 
+func (s *Security) identifierWithAccount() string {
+	// Name must not be used because it varies per file
+	return fmt.Sprintf("%s %s %s", s.account, s.assetType, s.ticker)
+}
+
 type Asset []*IndividualAsset
 
 func constructAsset(assets *proto.TotalAssetResponse) (Asset, RateManager, error) {

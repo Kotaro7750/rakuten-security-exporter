@@ -110,3 +110,12 @@ func monthsOfPastYear(containJustAnYearAgo bool) []struct {
 
 	return ret
 }
+
+func OrMonthBoolArray(a [12]bool, b[12]bool) [12]bool {
+  var or [12]bool
+  for i := 0; i < 12; i++ {
+    or[i] = a[i] || b[i]
+  }
+
+  return or
+}
