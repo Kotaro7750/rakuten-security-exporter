@@ -33,7 +33,9 @@ def parse_dividend_history(download_dir):
                 'count': int(e['数量[株/口]']),
                 'dividend_unitprice': float(e['単価[円/現地通貨]']),
                 'dividend_total_before_taxes': float(e['配当・分配金合計（税引前）[円/現地通貨]']),
-                'total_taxes': float(e['税額合計[円/現地通貨]']),
+                # 「税額合計[円/現地通貨]」は国内での課税分のみ表示され海外税額は含まれず、円以外の通貨で受け取る場合には「-」で表示される
+                # そのためこの項目ではなく税引き前から受け取り金額を引くことで計算する
+                'total_taxes': float(e['配当・分配金合計（税引前）[円/現地通貨]']) - float(e['受取金額[円/現地通貨]']),
                 'dividend_total': float(e['受取金額[円/現地通貨]'])
             })
 
