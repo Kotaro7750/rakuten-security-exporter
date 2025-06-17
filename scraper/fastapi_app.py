@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Optional
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from playwright.sync_api import sync_playwright
 
 from authorize import authorize, check_token_validity
+from scrape_status import ScrapeResultEnum, ScrapeResult
 
 import logging
 
@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # グローバル変数で最新のスクレイピング結果を保持
-latest_scraping_result: Optional[Dict[str, Any]] = None
+latest_scraping_result: Optional[ScrapeResult] = None
 
 
 # Response models for different endpoints
@@ -47,8 +47,8 @@ class BaseResponse(BaseModel):
 class StatusResponse(BaseResponse):
     """Response model for status endpoint."""
     scraping_time: Optional[str] = None
-    scraping_result: Optional[str] = None  # success, failure, running, idle
-    auth_token_status: Optional[str] = None  # valid, invalid
+    scraping_result: Optional[ScrapeResultEnum] = None
+    auth_token_status: Optional[str] = None
     auth_token_expiry: Optional[str] = None
 
 
@@ -71,7 +71,7 @@ async def run_auth_job(auth_code: str):
 
     except Exception as e:
         # 認証中の例外を処理 (ログ出力のみ)
-        print(f"認証実行中にエラーが発生しました: {str(e)}")
+        logger.error(f"認証実行中にエラーが発生しました: {str(e)}")
 
 
 @app.get("/status", response_model=StatusResponse)
@@ -81,14 +81,14 @@ async def get_status():
     token_check = check_token_validity()
 
     # Determine scraping status and time
-    scraping_result = "idle"
+    scraping_result = ScrapeResultEnum.IDLE
     scraping_time = None
     base_message = "システム状態を確認しました"
 
     if latest_scraping_result:
-        scraping_result = latest_scraping_result.get("status", "unknown")
-        scraping_time = latest_scraping_result.get("timestamp")
-        base_message = latest_scraping_result.get("message", base_message)
+        scraping_result = latest_scraping_result.status
+        scraping_time = latest_scraping_result.timestamp
+        base_message = latest_scraping_result.message
 
     # Determine auth token status
     auth_status = "valid" if token_check.get("is_valid", False) else "invalid"

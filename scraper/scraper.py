@@ -6,11 +6,12 @@ from playwright.sync_api import sync_playwright
 from authentication_code import get_authentication_codes
 from authorize import check_token_validity
 from logging import getLogger
+from scrape_status import ScrapeResultEnum, ScrapeResult
 
 logger = getLogger("rakuten-security-scraper")
 
 
-def scrape(id: str, password: str, download_dir: str) -> Dict[str, str]:
+def scrape(id: str, password: str, download_dir: str) -> ScrapeResult:
     """
     楽天証券の認証を実行し、結果を返す関数
 
@@ -20,23 +21,21 @@ def scrape(id: str, password: str, download_dir: str) -> Dict[str, str]:
         download_dir: ダウンロード先ディレクトリ
 
     Returns:
-        Dict[str, str]: スクレイピング結果を含む辞書
+        ScrapeResult: スクレイピング結果
     """
-    result = {
-        "status": "success",
-        "message": "認証が完了しました",
-        "timestamp": datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    }
+    result = ScrapeResult.create_success("認証が完了しました")
 
     # 認証トークンのチェック（スクレイピング前の早期終了）
     logger.info("Checking authentication token validity before scraping")
     token_check = check_token_validity()
     if not token_check.get("is_valid", False):
         logger.error(
-            "Authentication token is invalid or expired. Terminating scraping early.")
-        result["status"] = "error"
-        result["message"] = "認証トークンが無効または期限切れです。スクレイピングを中止しました。"
-        return result
+            "Authentication token is invalid or expired. "
+            "Terminating scraping early."
+        )
+        return ScrapeResult.create_failure(
+            "認証トークンが無効または期限切れです。スクレイピングを中止しました。"
+        )
 
     logger.info("Authentication token is valid, proceeding with scraping")
 
@@ -62,7 +61,7 @@ def scrape(id: str, password: str, download_dir: str) -> Dict[str, str]:
 
             auth_codes = get_and_display_authentication_codes(
                 timestamp=timestamp)
-            print(auth_codes)
+            logger.debug(f"取得した認証コード: {auth_codes}")
             page.get_by_role("button", name=auth_codes[0], exact=True).click()
             page.get_by_role("button", name=auth_codes[1], exact=True).click()
             page.get_by_role("button", name="認証する").click()
@@ -104,11 +103,10 @@ def scrape(id: str, password: str, download_dir: str) -> Dict[str, str]:
             download.save_as(f'{download_dir}/dividend.csv')
 
         # Navigation successful
-        result["message"] = "認証が完了しました"
+        result = ScrapeResult.create_success("認証が完了しました")
 
     except Exception as e:
-        result["status"] = "error"
-        result["message"] = f"エラーが発生しました: {str(e)}"
+        result = ScrapeResult.create_failure(f"エラーが発生しました: {str(e)}")
     finally:
         try:
             if 'context' in locals():
@@ -118,7 +116,7 @@ def scrape(id: str, password: str, download_dir: str) -> Dict[str, str]:
         except:
             pass
 
-    print(result)
+    logger.info(f"スクレイピング結果: {result}")
     return result
 
 
@@ -140,8 +138,8 @@ def get_and_display_authentication_codes(timestamp=None):
         current_time = datetime.now()
         timestamp = current_time.strftime("%Y/%m/%d %H:%M:%S")
 
-    print(f"検索開始時刻: {timestamp}")
-    print("認証コードを取得しています...")
+    logger.info(f"検索開始時刻: {timestamp}")
+    logger.info("認証コードを取得しています...")
 
     # 認証コードを取得（exponential backoffリトライ処理を実装）
     max_retries = 5
@@ -158,7 +156,8 @@ def get_and_display_authentication_codes(timestamp=None):
             # exponential backoffで待機時間を計算
             wait_time = min(initial_wait * (multiplier **
                             (retry_count - 1)), max_wait)
-            print(f"リトライ {retry_count}/{max_retries}... {wait_time}秒待機します")
+            logger.info(
+                f"リトライ {retry_count}/{max_retries}... {wait_time}秒待機します")
             time.sleep(wait_time)
 
         auth_codes = get_authentication_codes(timestamp=timestamp)
@@ -166,14 +165,20 @@ def get_and_display_authentication_codes(timestamp=None):
 
         # 結果の表示
         if auth_codes:
-            print(f"{timestamp} 以降の認証コード:")
+            logger.info(f"{timestamp} 以降の認証コード:")
             for i, code in enumerate(auth_codes, 1):
-                print(f"コード {i}: {code}")
+                logger.info(f"コード {i}: {code}")
         elif retry_count < max_retries:
             next_wait_time = min(
                 initial_wait * (multiplier ** retry_count), max_wait)
-            print(f"{timestamp} 以降の認証コードを取得できませんでした。{next_wait_time}秒後にリトライします。")
+            logger.warning(
+                f"{timestamp} 以降の認証コードを取得できませんでした。"
+                f"{next_wait_time}秒後にリトライします。"
+            )
         else:
-            print(f"{timestamp} 以降の認証コードを取得できませんでした。最大リトライ回数に達しました。")
+            logger.warning(
+                f"{timestamp} 以降の認証コードを取得できませんでした。"
+                "最大リトライ回数に達しました。"
+            )
 
     return auth_codes

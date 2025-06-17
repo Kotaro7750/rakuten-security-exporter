@@ -8,6 +8,7 @@ import threading
 import uvicorn
 from concurrent import futures
 from logging import getLogger, StreamHandler
+from pythonjsonlogger.jsonlogger import JsonFormatter
 import cache
 from distutils.util import strtobool
 from fastapi_app import app, set_servicer
@@ -125,7 +126,30 @@ cache_clear_on_start = bool(
 logger = getLogger("rakuten-security-scraper")
 logger.setLevel('INFO')
 stream_handler = StreamHandler(stream=sys.stdout)
+# Configure JSON formatter
+json_formatter = JsonFormatter(
+    fmt='%(asctime)s %(name)s %(levelname)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+stream_handler.setFormatter(json_formatter)
 logger.addHandler(stream_handler)
+
+# Configure gRPC logging to use JSON format
+grpc_logger = getLogger("grpc")
+grpc_logger.setLevel('INFO')
+grpc_stream_handler = StreamHandler(stream=sys.stdout)
+grpc_stream_handler.setFormatter(json_formatter)
+grpc_logger.addHandler(grpc_stream_handler)
+
+# Configure root logger to use JSON format for all other loggers
+root_logger = getLogger()
+root_logger.setLevel('INFO')
+# Remove existing handlers to avoid duplication
+for handler in root_logger.handlers[:]:
+    root_logger.removeHandler(handler)
+root_stream_handler = StreamHandler(stream=sys.stdout)
+root_stream_handler.setFormatter(json_formatter)
+root_logger.addHandler(root_stream_handler)
 
 
 def run_grpc_server():
@@ -148,7 +172,50 @@ def run_grpc_server():
 def run_fastapi_server():
     """Run FastAPI server"""
     logger.info("Starting FastAPI server on port 8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    
+    # Configure uvicorn logging to use JSON format
+    log_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "json": {
+                "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+                "fmt": "%(asctime)s %(name)s %(levelname)s %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S"
+            }
+        },
+        "handlers": {
+            "default": {
+                "formatter": "json",
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout"
+            },
+            "access": {
+                "formatter": "json",
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout"
+            }
+        },
+        "loggers": {
+            "uvicorn": {
+                "handlers": ["default"],
+                "level": "INFO",
+                "propagate": False
+            },
+            "uvicorn.error": {
+                "handlers": ["default"],
+                "level": "INFO",
+                "propagate": False
+            },
+            "uvicorn.access": {
+                "handlers": ["access"],
+                "level": "INFO",
+                "propagate": False
+            }
+        }
+    }
+    
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", log_config=log_config)
 
 
 if __name__ == "__main__":

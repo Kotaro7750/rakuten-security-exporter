@@ -6,6 +6,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from logging import getLogger
 from authorize import check_token_validity
+from scrape_status import ScrapeResultEnum
 
 logger = getLogger("rakuten-security-scraper")
 
@@ -41,7 +42,7 @@ class CachedRakutenSecurityScraper():
         updated_time = datetime.datetime.fromtimestamp(timestamp)
         current_time = datetime.datetime.now()
 
-        print((current_time - updated_time).total_seconds())
+        logger.debug(f"Cache age: {(current_time - updated_time).total_seconds()} seconds")
 
         return (current_time - updated_time).total_seconds() <= self.ttl_second
 
@@ -90,7 +91,9 @@ class CachedRakutenSecurityScraper():
             token_check = check_token_validity()
             if not token_check.get("is_valid", False):
                 logger.error(
-                    "Authentication token is invalid or expired. Cannot start scraping.")
+                    "Authentication token is invalid or expired. "
+                    "Cannot start scraping."
+                )
                 self._scraping_lock.release()
                 return
 
@@ -109,12 +112,10 @@ class CachedRakutenSecurityScraper():
             logger.info("Performing scraping")
             result = scraper.scrape(self.id, self.password, self.download_dir)
 
-            if result["status"] == "success":
+            if result.status == ScrapeResultEnum.SUCCESS:
                 logger.info("Scraping completed successfully")
-                # CSVファイルのリネーム処理
-                self._rename_downloaded_files()
             else:
-                logger.error(f"Scraping failed: {result['message']}")
+                logger.error(f"Scraping failed: {result.message}")
 
         except Exception as e:
             logger.error(f"Error during scraping: {str(e)}")
@@ -122,30 +123,3 @@ class CachedRakutenSecurityScraper():
             # スクレイピング完了後にロックを解放
             self._scraping_lock.release()
             logger.info("Scraping lock released")
-
-    def _rename_downloaded_files(self):
-        """ダウンロードされたファイルを適切な名前にリネーム"""
-        try:
-            # withdrawal.csv
-            withdrawal_files = list(pathlib.Path(
-                self.download_dir).glob("Withdrawal*.csv"))
-            if withdrawal_files:
-                withdrawal_files[0].rename(pathlib.Path(
-                    self.download_dir, "withdrawal.csv"))
-
-            # dividend.csv
-            dividend_files = list(pathlib.Path(
-                self.download_dir).glob("dividendlist_*.csv"))
-            if dividend_files:
-                dividend_files[0].rename(pathlib.Path(
-                    self.download_dir, "dividend.csv"))
-
-            # asset.csv
-            asset_files = list(pathlib.Path(
-                self.download_dir).glob("assetbalance*.csv"))
-            if asset_files:
-                asset_files[0].rename(pathlib.Path(
-                    self.download_dir, "asset.csv"))
-
-        except Exception as e:
-            logger.error(f"Error renaming files: {str(e)}")

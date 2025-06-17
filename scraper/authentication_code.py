@@ -5,7 +5,9 @@ import pickle
 import base64
 import re
 import dateutil.parser
-import pytz
+import logging
+
+logger = logging.getLogger("rakuten-security-scraper")
 
 
 def get_gmail_service():
@@ -165,8 +167,7 @@ def get_authentication_codes(timestamp):
                     if msg_date <= search_full_dt:
                         return []
                 except Exception as e:
-                    print("日付解析エラー:", date_str)
-                    print("エラーの詳細:", str(e))
+                    logger.error(f"日付解析エラー: {date_str}, エラーの詳細: {str(e)}")
                     # 日付解析エラーの場合は処理続行
                     pass
 
