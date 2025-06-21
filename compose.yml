@@ -16,10 +16,12 @@ services:
     env_file: "./scraper-env"
     volumes:
       - "./scraper/downloaded:/csv"
+      - "./gmail_auth/:/gmil_auth"
     environment:
       DOWNLOAD_DIR: '/csv'
       CACHE_TTL_SECOND: '-1'
       CACHE_CLEAR_ON_START: 'False'
+      GMAIL_API_AUTH_DIR: '/gmil_auth'
     ports:
       - 8000:8000
       - 50051:50051

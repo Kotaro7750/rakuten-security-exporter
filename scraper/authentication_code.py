@@ -6,6 +6,7 @@ import base64
 import re
 import dateutil.parser
 import logging
+from authorize import get_auth_file_path
 
 logger = logging.getLogger("rakuten-security-scraper")
 
@@ -14,13 +15,14 @@ def get_gmail_service():
     """Gmail APIのサービスを初期化して返す"""
     try:
         # 保存済みのトークンを読み込む
-        with open('token.pickle', 'rb') as token:
+        token_path = get_auth_file_path('token.pickle')
+        with open(token_path, 'rb') as token:
             creds = pickle.load(token)
 
         # 必要ならリフレッシュ
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            with open('token.pickle', 'wb') as token_file:
+            with open(token_path, 'wb') as token_file:
                 pickle.dump(creds, token_file)
 
         # Gmail API クライアント作成

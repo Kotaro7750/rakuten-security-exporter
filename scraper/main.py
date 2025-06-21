@@ -129,7 +129,8 @@ stream_handler = StreamHandler(stream=sys.stdout)
 # Configure JSON formatter
 json_formatter = JsonFormatter(
     fmt='%(asctime)s %(name)s %(levelname)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
+    json_ensure_ascii=False
 )
 stream_handler.setFormatter(json_formatter)
 logger.addHandler(stream_handler)
@@ -181,7 +182,8 @@ def run_fastapi_server():
             "json": {
                 "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
                 "fmt": "%(asctime)s %(name)s %(levelname)s %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S"
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+                "json_ensure_ascii": False
             }
         },
         "handlers": {
