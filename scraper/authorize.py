@@ -10,8 +10,8 @@ from datetime import datetime
 
 # Gmail API のスコープ（読み取り専用）
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-# OAuth callback URI
-REDIRECT_URI = "http://localhost:8000/oauth2callback"
+OAUTH_BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8000')
+REDIRECT_URI = f"{OAUTH_BASE_URL}/oauth2callback"
 
 # ログ設定
 logger = logging.getLogger("rakuten-security-scraper")
