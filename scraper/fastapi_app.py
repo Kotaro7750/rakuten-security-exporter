@@ -52,14 +52,19 @@ class StatusResponse(BaseResponse):
     auth_token_expiry: Optional[str] = None
 
 
-class AuthResponse(BaseResponse):
+class AuthResponse(BaseModel):
     """Response model for auth endpoint."""
-    auth_url: str  # Required for auth endpoint
+    auth_url: str
 
 
 class OAuthCallbackResponse(BaseResponse):
     """Response model for OAuth callback endpoint."""
     pass  # Uses only base fields
+
+
+class AuthStatusResponse(BaseModel):
+    """Response model for auth_status endpoint."""
+    token_validity: bool
 
 
 async def run_auth_job(auth_code: str):
@@ -114,9 +119,6 @@ async def start_auth():
         # auth_urlが存在する場合は、それをレスポンスに含める
         if "auth_url" in result:
             return AuthResponse(
-                status=result["status"],
-                message=result["message"],
-                timestamp=result["timestamp"],
                 auth_url=result["auth_url"]
             )
         raise HTTPException(status_code=500, detail="認証URLの取得に失敗しました")
@@ -137,4 +139,14 @@ async def oauth_callback(code: str, background_tasks: BackgroundTasks):
         status="accepted",
         message="認証コードを処理中...",
         timestamp=datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+    )
+
+
+@app.get("/auth_status", response_model=AuthStatusResponse)
+async def get_auth_status():
+    """Get the authentication token validity status."""
+    token_check = check_token_validity()
+
+    return AuthStatusResponse(
+        token_validity=token_check.get("is_valid", False)
     )
