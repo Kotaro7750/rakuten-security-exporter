@@ -42,7 +42,8 @@ class CachedRakutenSecurityScraper():
         updated_time = datetime.datetime.fromtimestamp(timestamp)
         current_time = datetime.datetime.now()
 
-        logger.debug(f"Cache age: {(current_time - updated_time).total_seconds()} seconds")
+        logger.info(
+            f"Cache age: {(current_time - updated_time).total_seconds()} seconds")
 
         return (current_time - updated_time).total_seconds() <= self.ttl_second
 

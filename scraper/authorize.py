@@ -54,12 +54,18 @@ def get_credentials():
         with open(token_path, 'rb') as token:
             creds = pickle.load(token)
 
+        logger.info("Saved credentials found. Using existing token.")
+
     # リフレッシュが必要かチェック
     if creds and creds.expired and creds.refresh_token:
+        logger.info("Token is expired, refreshing...")
         creds.refresh(Request())
         # リフレッシュしたトークンを保存
         with open(token_path, 'wb') as token:
             pickle.dump(creds, token)
+        logger.info(f"Refreshed token saved. New token expiry: {creds.expiry}")
+
+    logger.info("Credentials loaded")
 
     return creds
 
