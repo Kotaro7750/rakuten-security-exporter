@@ -47,58 +47,58 @@ def scrape(id: str, password: str, download_dir: str) -> ScrapeResult:
             page = context.new_page()
             page.goto("https://www.rakuten-sec.co.jp/ITS/V_ACT_Login.html")
 
-            page.get_by_role("textbox", name="ログインID").click()
-            page.get_by_role("textbox", name="ログインID").fill(id)
-            page.get_by_role("textbox", name="パスワード").click()
-            page.get_by_role("textbox", name="パスワード").fill(password)
+            page.get_by_role("textbox", name="ログインID", exact=True).click()
+            page.get_by_role("textbox", name="ログインID", exact=True).fill(id)
+            page.get_by_role("textbox", name="パスワード", exact=True).click()
+            page.get_by_role("textbox", name="パスワード", exact=True).fill(password)
 
             # 30秒前のタイムスタンプを生成
             current_time = datetime.now()
             timestamp = (current_time - timedelta(seconds=30)
                          ).strftime("%Y/%m/%d %H:%M:%S")
 
-            page.get_by_role("button", name=" ログインする").click()
+            page.get_by_role("button", name=" ログインする", exact=True).click()
 
             auth_codes = get_and_display_authentication_codes(
                 timestamp=timestamp)
             logger.debug(f"取得した認証コード: {auth_codes}")
             page.get_by_role("button", name=auth_codes[0], exact=True).click()
             page.get_by_role("button", name=auth_codes[1], exact=True).click()
-            page.get_by_role("button", name="認証する").click()
+            page.get_by_role("button", name="認証する", exact=True).click()
 
-            page.get_by_role("link", name="チャットで問合せる").hover()
-            page.get_by_role("button", name="マイメニュー 口座管理・入出金など").click()
+            page.get_by_role("link", name="チャットで問合せる", exact=True).hover()
+            page.get_by_role("button", name="マイメニュー 口座管理・入出金など", exact=True).click()
 
             page.locator("#megaMenu").get_by_role(
-                "link", name="保有商品一覧").click()
-            page.get_by_role("cell", name="保有商品の評価額合計").hover()
+                "link", name="保有商品一覧", exact=True).click()
+            page.get_by_role("cell", name="保有商品の評価額合計", exact=True).hover()
 
             with page.expect_download() as download_info:
-                page.get_by_role("link", name="CSVで保存").click()
+                page.get_by_role("link", name="CSVで保存", exact=True).click()
             download = download_info.value
             download.save_as(f'{download_dir}/asset.csv')
 
-            page.get_by_role("link", name="楽天証券").click()
+            page.get_by_role("link", name="楽天証券", exact=True).click()
 
-            page.get_by_role("link", name="チャットで問合せる").hover()
-            page.get_by_role("button", name="マイメニュー 口座管理・入出金など").click()
+            page.get_by_role("link", name="チャットで問合せる", exact=True).hover()
+            page.get_by_role("button", name="マイメニュー 口座管理・入出金など", exact=True).click()
 
             page.get_by_role("link", name="入出金履歴", exact=True).click()
             with page.expect_download() as download_info:
-                page.get_by_role("link", name="CSVで保存").click()
+                page.get_by_role("link", name="CSVで保存", exact=True).click()
             download = download_info.value
             download.save_as(f'{download_dir}/withdrawal.csv')
 
-            page.get_by_role("link", name="楽天証券").click()
+            page.get_by_role("link", name="楽天証券", exact=True).click()
 
-            page.get_by_role("link", name="チャットで問合せる").hover()
-            page.get_by_role("button", name="マイメニュー 口座管理・入出金など").click()
+            page.get_by_role("link", name="チャットで問合せる", exact=True).hover()
+            page.get_by_role("button", name="マイメニュー 口座管理・入出金など", exact=True).click()
             page.locator("#megaMenu").get_by_role(
-                "link", name="配当・分配金").click()
-            page.get_by_role("img", name="すべて").click()
-            page.get_by_role("button", name="Submit").click()
+                "link", name="配当・分配金", exact=True).click()
+            page.get_by_role("img", name="すべて", exact=True).click()
+            page.get_by_role("button", name="Submit", exact=True).click()
             with page.expect_download() as download_info:
-                page.get_by_role("link", name="CSVで保存").click()
+                page.get_by_role("link", name="CSVで保存", exact=True).click()
             download = download_info.value
             download.save_as(f'{download_dir}/dividend.csv')
 
