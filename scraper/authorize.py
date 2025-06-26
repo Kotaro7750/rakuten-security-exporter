@@ -42,6 +42,7 @@ def get_auth_file_path(filename: str) -> str:
 def get_credentials():
     """
     保存されたトークンからcredentialsを取得する関数
+    リフレッシュトークンを使用して期限切れトークンを自動更新する
 
     Returns:
         Credentials or None: 保存されたトークン情報、ない場合はNone
@@ -51,21 +52,66 @@ def get_credentials():
 
     # トークンが保存されていればそれを使う
     if os.path.exists(token_path):
-        with open(token_path, 'rb') as token:
-            creds = pickle.load(token)
+        try:
+            with open(token_path, 'rb') as token:
+                creds = pickle.load(token)
+            logger.info("Saved credentials found. Using existing token.")
+            
+            # 認証情報の詳細をログ出力
+            if creds:
+                logger.info(f"Token valid: {creds.valid}")
+                logger.info(f"Token expired: {creds.expired}")
+                logger.info(f"Has refresh token: {bool(creds.refresh_token)}")
+                if creds.expiry:
+                    logger.info(f"Token expiry: {creds.expiry}")
 
-        logger.info("Saved credentials found. Using existing token.")
+        except Exception as e:
+            logger.error(f"Failed to load saved credentials: {str(e)}")
+            # 破損したトークンファイルを削除
+            try:
+                os.remove(token_path)
+                logger.info("Removed corrupted token file")
+            except OSError:
+                pass
+            return None
 
     # リフレッシュが必要かチェック
     if creds and creds.expired and creds.refresh_token:
-        logger.info("Token is expired, refreshing...")
-        creds.refresh(Request())
-        # リフレッシュしたトークンを保存
-        with open(token_path, 'wb') as token:
-            pickle.dump(creds, token)
-        logger.info(f"Refreshed token saved. New token expiry: {creds.expiry}")
+        logger.info("Token is expired, attempting to refresh...")
+        try:
+            creds.refresh(Request())
+            logger.info("Token refresh successful")
+            
+            # リフレッシュしたトークンを保存
+            with open(token_path, 'wb') as token:
+                pickle.dump(creds, token)
+            logger.info(f"Refreshed token saved. New token expiry: {creds.expiry}")
+            
+        except Exception as e:
+            logger.error(f"Token refresh failed: {str(e)}")
+            # リフレッシュに失敗した場合、無効なトークンファイルを削除
+            try:
+                os.remove(token_path)
+                logger.info("Removed expired token file after refresh failure")
+            except OSError:
+                pass
+            return None
+    
+    # トークンが期限切れでリフレッシュトークンがない場合
+    elif creds and creds.expired and not creds.refresh_token:
+        logger.warning("Token is expired and no refresh token available. Re-authentication required.")
+        # 期限切れで更新不可能なトークンファイルを削除
+        try:
+            os.remove(token_path)
+            logger.info("Removed expired token file (no refresh token)")
+        except OSError:
+            pass
+        return None
 
-    logger.info("Credentials loaded")
+    if creds:
+        logger.info("Credentials loaded successfully")
+    else:
+        logger.info("No valid credentials found")
 
     return creds
 
@@ -92,7 +138,8 @@ def generate_auth_url() -> Dict[str, Any]:
 
         auth_url, state = flow.authorization_url(
             access_type='offline',
-            include_granted_scopes='true'
+            include_granted_scopes='true',
+            prompt='consent'
         )
 
         # stateを保存
@@ -149,16 +196,25 @@ def authorize_with_code(auth_code: str) -> Dict[str, Any]:
 
         creds = flow.credentials
 
+        # リフレッシュトークンの有無を確認
+        if not creds.refresh_token:
+            logger.warning("No refresh token received. This may cause issues with token renewal.")
+        else:
+            logger.info("Refresh token received successfully.")
+
         # トークンを保存
         token_path = get_auth_file_path('token.pickle')
         with open(token_path, 'wb') as token:
             pickle.dump(creds, token)
 
+        logger.info(f"Token saved to {token_path}")
+        
         # 認証情報をJSONに変換（デバッグ用）
         creds_json = json.loads(creds.to_json())
         result["credentials_info"] = {
             "token_expiry": creds_json.get("token_expiry", ""),
-            "scopes": creds_json.get("scopes", [])
+            "scopes": creds_json.get("scopes", []),
+            "has_refresh_token": bool(creds.refresh_token)
         }
 
         # 一時的なstate情報を削除
