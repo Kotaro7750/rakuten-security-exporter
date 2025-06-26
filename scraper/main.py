@@ -134,6 +134,8 @@ json_formatter = JsonFormatter(
 )
 stream_handler.setFormatter(json_formatter)
 logger.addHandler(stream_handler)
+# Prevent propagation to root logger to avoid duplicate logs
+logger.propagate = False
 
 # Configure gRPC logging to use JSON format
 grpc_logger = getLogger("grpc")
@@ -141,6 +143,8 @@ grpc_logger.setLevel('INFO')
 grpc_stream_handler = StreamHandler(stream=sys.stdout)
 grpc_stream_handler.setFormatter(json_formatter)
 grpc_logger.addHandler(grpc_stream_handler)
+# Prevent propagation to root logger to avoid duplicate logs
+grpc_logger.propagate = False
 
 # Configure root logger to use JSON format for all other loggers
 root_logger = getLogger()
